@@ -1,24 +1,7 @@
-import wget
 import os
+from dwl_utils import dwl_file, mkdir, unzip
 
 predir=os.path.abspath('/bluewhale/damonge/S8z_data')
-
-def dwl_file(fname,url,call=None,verbose=True):
-    if not os.path.isfile(fname):
-        if verbose:
-            print(fname)
-        wget.download(url)
-        print("\n")
-        if call is not None:
-            call()
-
-def mkdir(dr):
-    if not os.path.isdir(dr):
-        os.makedirs(dr)
-
-def unzip(fname):
-    os.system('unzip '+fname)
-    os.remove(fname)
 
 # Create data directory
 mkdir(predir+"/DES_data")
