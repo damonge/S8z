@@ -9,36 +9,17 @@ import os
 def opt_callback(option, opt, value, parser):
         setattr(parser.values, option.dest, value.split(','))
 parser = OptionParser()
-parser.add_option('--prefix-out',dest='prefix_out',default='run',type=str,
-                  help='Output prefix')
-parser.add_option('--nside', dest='nside', default=512, type=int,
-                  help='HEALPix nside param')
-parser.add_option('--isim-ini', dest='isim_ini', default=1, type=int,
-                  help='Index of first simulation')
-parser.add_option('--isim-end', dest='isim_end', default=100, type=int,
-                  help='Index of last simulation')
-parser.add_option('--wo-contaminants', dest='wo_cont', default=False, action='store_true',
-                  help='Set if you don\'t want to use contaminants (ignore for now)')
-parser.add_option('--nls-contaminants', dest='nls_cont', default=0, type=int,
-                  help='Number of Large Scales contaminants')
-parser.add_option('--nss-contaminants', dest='nss_cont', default=0, type=int,
-                  help='Number of Small Scales contaminants')
+# parser.add_option('--nside', dest='nside', default=512, type=int,
+#                   help='HEALPix nside param')
 parser.add_option('--plot', dest='plot_stuff', default=False, action='store_true',
                   help='Set if you want to produce plots')
-parser.add_option('--no-deproject',dest='no_deproject',default=False,action='store_true',
-                  help='Set if you will include contaminants but won\'t clean them (ignore for now)')
-parser.add_option('--no-debias',dest='no_debias',default=False,action='store_true',
-                  help='Set if you will include contaminants, clean them but won\'t correct for the bias (ignore for now)')
-parser.add_option('--low-noise-ee-bb',dest='low_noise_ee_bb',default=False,action='store_true',
-                  help='Set if you want the noise for ee and bb modes be multiplied by 1e-2')
 
 (o, args) = parser.parse_args()
-
-# nsims=o.isim_end-o.isim_ini+1
 
 data_folder = '/mnt/bluewhale/damonge/S8z_data/derived_products'
 des_folder_gcl = 'des_clustering'
 des_mask = 'mask_ns4096.fits'
+des_nside = 4096
 
 des_data_folder = os.path.join(data_folder, des_folder_gcl)
 
@@ -78,7 +59,7 @@ if o.plot_stuff:
 #Set up binning scheme
 fsky = np.mean(des_mask)
 d_ell = int(1./fsky)
-b = nmt.NmtBin(o.nside,nlb=d_ell)
+b = nmt.NmtBin(des_nside,nlb=d_ell)
 
 #Generate an initial simulation
 def get_fields(maps_dg):
