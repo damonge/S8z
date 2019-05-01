@@ -56,21 +56,19 @@ for i in range(nmaps):
 des_maps = np.array(des_maps)
 
 N_mean = des_maps.sum(axis=1) / des_mask.sum()
-des_maps_dg = des_maps / (N_mean * des_mask) - 1
+des_maps_dg = des_maps / (N_mean[::None] * des_mask) - 1
 des_maps_dg[np.isnan(des_maps_dg)] = 0.
 
 
-###### Test ######
-
-for i, mapi in enumerate(des_maps_dg):
-    check = des_maps[i] / (N_mean * des_mask) - 1
-    check[np.isnan(check)] = 0
-
-    print(np.all(mapi == check))
-
-###### Test ######
-
-sys.exit()
+# ###### Test ######
+#
+# for i, mapi in enumerate(des_maps_dg):
+#     check = des_maps[i] / (N_mean * des_mask) - 1
+#     check[np.isnan(check)] = 0
+#
+#     print(np.all(mapi == check))
+#
+# ###### Test ######
 
 if o.plot_stuff:
     hp.mollview(des_mask)
@@ -103,13 +101,14 @@ des_fields = get_fields(des_maps_dg)
 #Compute mode-coupling matrix
 #Use initial fields to generate coupling matrix
 w00=nmt.NmtWorkspace();
-if not os.path.isfile(o.prefix_out+"_w00.dat"): #spin0-spin0
+fname = os.path.join(des_data_folder, 'w00_ns4096.dat')
+if not os.path.isfile(fname): #spin0-spin0
     print("Computing 00")
     f0 = des_fields[0]  # All of them have same mask, so just need one w00
     w00.compute_coupling_matrix(f0, f0, b)
-    w00.write_to(o.prefix_out+"_w00.dat");
+    w00.write_to(fname);
 else :
-    w00.read_from(o.prefix_out+"_w00.dat")
+    w00.read_from(fname)
 
 
 #Compute mean and variance over nsims simulations
