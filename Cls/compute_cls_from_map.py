@@ -94,7 +94,7 @@ def get_fields(maps_dg):
     """
     fields = []
     for mapi in maps_dg:
-        fields00 = nmt.NmtField(des_mask, [mapi])
+        fields.append(nmt.NmtField(des_mask, [mapi]))
 
     return fields
 
