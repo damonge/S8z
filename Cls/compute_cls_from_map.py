@@ -51,7 +51,7 @@ des_mask = hp.read_map(des_mask_path, verbose=False)
 nmaps = 5
 des_maps = np.zeros((nmaps, 4096))
 for i in range(nmaps):
-    map_file = os.path.join(des_data_folder, 'maps_counts_w_bin{}_ns4096.fits'.format(i))
+    map_file = os.path.join(des_data_folder, 'map_counts_w_bin{}_ns4096.fits'.format(i))
     des_maps[i] = hp.read_map(map_file)
 
 N_mean = des_maps.sum(axis=1) / des_mask.sum()
