@@ -4,7 +4,6 @@ import pymaster as nmt
 import numpy as np
 import matplotlib.pyplot as plt
 import healpy as hp
-import templates as tp
 import os
 
 def opt_callback(option, opt, value, parser):
