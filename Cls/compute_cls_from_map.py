@@ -16,6 +16,8 @@ parser.add_option('--plot', dest='plot_stuff', default=False, action='store_true
 
 (o, args) = parser.parse_args()
 
+output_folder = '/mnt/zfsusers/gravityls_3/codes/S8z/Cls/outputs'
+
 data_folder = '/mnt/bluewhale/damonge/S8z_data/derived_products'
 des_folder_gcl = 'des_clustering'
 des_mask = 'mask_ns4096.fits'
@@ -82,7 +84,7 @@ des_fields = get_fields(des_maps_dg)
 #Compute mode-coupling matrix
 #Use initial fields to generate coupling matrix
 w00=nmt.NmtWorkspace();
-fname = os.path.join(des_data_folder, 'w00_ns4096.dat')
+fname = os.path.join(output_folder, 'des_w00_ns4096.dat')
 if not os.path.isfile(fname): #spin0-spin0
     print("Computing 00")
     f0 = des_fields[0]  # All of them have same mask, so just need one w00
@@ -96,7 +98,7 @@ else :
 cl00_arr = []
 for i, f0i in enumerate(des_fields):
     for f0j in des_fields[i:]:
-        cl00 = w00.decouple_cell(nmt.compute_coupled_cell(f0i, f0j))
+        cl00 = w00.decouple_cell(nmt.compute_coupled_cell(f0i, f0j))[0]
         cl00_arr.append(cl00)
 
 cl00_matrix = np.empty((len(des_fields), len(des_fields), len(cl00)),
@@ -111,7 +113,7 @@ print(np.all(cl00_matrix[1,3] == cl00_matrix[3, 1]))
 print(np.all(cl00_matrix[2,3] == cl00_arr[10]))
 print(np.all(cl00_matrix[2,2] == cl00_arr[9]))
 
-np.savez(os.path.join(des_data_folder, "cl_ns4096"),
+np.savez(os.path.join(output_folder, "des_cl_ns4096"),
          l=b.get_effective_ells(), cls=cl00_matrix)
 
 if o.plot_stuff :
