@@ -37,7 +37,7 @@ for i in range(nmaps):
 des_maps = np.array(des_maps)
 
 N_mean = des_maps.sum(axis=1) / des_mask.sum()
-des_maps_dg = des_maps / (N_mean[::None] * des_mask) - 1
+des_maps_dg = des_maps / (N_mean[:, None] * des_mask) - 1
 des_maps_dg[np.isnan(des_maps_dg)] = 0.
 
 
