@@ -118,9 +118,9 @@ for i, N_ell_mapi in enumerate(N_ell):
 
 N_bpw = np.array(N_bpw)
 
-np.savez(os.path.join(output_folder, "des_cl_ns4096"),
+np.savez(os.path.join(output_folder, "des_w_cl_ns4096"),
          l=b.get_effective_ells(), cls=cl00_matrix)
-np.savez(os.path.join(output_folder, "des_cl_shot_noise_ns4096"),
+np.savez(os.path.join(output_folder, "des_w_cl_shot_noise_ns4096"),
          l=b.get_effective_ells(), cls=N_bpw)
 
 
