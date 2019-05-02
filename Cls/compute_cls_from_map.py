@@ -38,15 +38,15 @@ for i in range(nmaps):
     des_maps.append(hp.read_map(map_file))
 des_maps = np.array(des_maps)
 
-N_mean = des_maps.sum(axis=1) / des_mask.sum()
-des_maps_dg = des_maps / (N_mean[:, None] * des_mask) - 1
+des_N_mean = des_maps.sum(axis=1) / des_mask.sum()
+des_maps_dg = des_maps / (des_N_mean[:, None] * des_mask) - 1
 des_maps_dg[np.isnan(des_maps_dg)] = 0.
 
 
 # ###### Test ######
 #
 # for i, mapi in enumerate(des_maps_dg):
-#     check = des_maps[i] / (N_mean * des_mask) - 1
+#     check = des_maps[i] / (des_N_mean * des_mask) - 1
 #     check[np.isnan(check)] = 0
 #
 #     print(np.all(mapi == check))
@@ -94,7 +94,7 @@ else :
     w00.read_from(fname)
 
 
-#Compute mean and variance over nsims simulations
+# Compute cls
 cl00_arr = []
 for i, f0i in enumerate(des_fields):
     for f0j in des_fields[i:]:
@@ -107,14 +107,28 @@ i, j = np.triu_indices(len(des_fields))
 cl00_matrix[i, j] = cl00_arr
 cl00_matrix[j, i] = cl00_arr
 
+# Compute noise
+des_N_mean_srad = des_N_mean / (4 * np.pi) * hp.nside2npix(des_nside)
+N_ell = des_mask.sum() / hp.nside2npix(des_nside) / des_N_mean_srad
 
-######################### Test ############################
-print(np.all(cl00_matrix[1,3] == cl00_matrix[3, 1]))
-print(np.all(cl00_matrix[2,3] == cl00_arr[10]))
-print(np.all(cl00_matrix[2,2] == cl00_arr[9]))
+N_bpw = []
+for i, N_ell_mapi in enumerate(N_ell):
+    N_bpw.append(w00.decouple_cell(N_ell_mapi * np.ones(b.get_n_bands()))[0])
+    cl00_matrix[i, i] -= N_bpw[-1]
+
+N_bpw = np.array(N_bpw)
 
 np.savez(os.path.join(output_folder, "des_cl_ns4096"),
          l=b.get_effective_ells(), cls=cl00_matrix)
+np.savez(os.path.join(output_folder, "des_cl_shot_noise_ns4096"),
+         l=b.get_effective_ells(), cls=N_bpw)
+
+
+# ######################### Test ############################
+# print(np.all(cl00_matrix[1,3] == cl00_matrix[3, 1]))
+# print(np.all(cl00_matrix[2,3] == cl00_arr[10]))
+# print(np.all(cl00_matrix[2,2] == cl00_arr[9]))
+# ######################### Test ############################
 
 if o.plot_stuff :
     plt.show()
