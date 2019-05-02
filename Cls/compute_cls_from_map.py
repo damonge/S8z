@@ -113,7 +113,7 @@ N_ell = des_mask.sum() / hp.nside2npix(des_nside) / des_N_mean_srad
 
 N_bpw = []
 for i, N_ell_mapi in enumerate(N_ell):
-    N_bpw.append(w00.decouple_cell(N_ell_mapi * np.ones(3 * des_nside))[0])
+    N_bpw.append(w00.decouple_cell([N_ell_mapi * np.ones(3 * des_nside)])[0])
     cl00_matrix[i, i] -= N_bpw[-1]
 
 N_bpw = np.array(N_bpw)
