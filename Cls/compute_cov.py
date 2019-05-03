@@ -1,6 +1,7 @@
 #!/usr/bin/python
 
 from __future__ import print_function
+from scipy.interpolate import interp1d
 import os
 import pymaster as nmt
 import numpy as np
@@ -81,8 +82,12 @@ fname = os.path.join(output_folder, "des_w_cl_shot_noise_ns4096.npz")
 if not os.path.isfile(fname):
     raise ValueError('Missing shot noise: ', fname)
 
-des_Nls_arr = np.load(fname)
+des_Nls_file = np.load(fname)
+des_Nls_ell = des_Nls_file['l']
+des_Nls_arr = des_Nls_file['cls']
+
 for i, nls in enumerate(des_Nls_arr):
+    nls = interp1d(des_Nls_ell, des_Nls_arr)(th_ell)
     des_th_cl00_matrix[i, i] += nls
 
 
