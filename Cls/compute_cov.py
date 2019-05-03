@@ -77,7 +77,7 @@ des_th_cl00_matrix[j, i] = des_th_cls_arr
 ##############################################################################
 ################# Add shot noise Cls to th's ones  #################
 ##############################################################################
-fname = os.path.join(output_folder, "des_w_cl_shot_noise_ns4096")
+fname = os.path.join(output_folder, "des_w_cl_shot_noise_ns4096.npz")
 if not os.path.isfile(fname):
     raise ValueError('Missing shot noise: ', fname)
 
