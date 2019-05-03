@@ -106,6 +106,7 @@ fname = os.path.join(output_folder, 'des_w00_ns4096.dat')
 w00 = nmt.NmtWorkspace()
 if not os.path.isfile(fname): #spin0-spin0
     w00.compute_coupling_matrix(f0, f0, b)  # raise ValueError('Missing workspace: ', fname)
+    w00.write_to(fname)
 else:
     w00.read_from(fname)
 
@@ -116,6 +117,7 @@ fname = os.path.join(output_folder, 'des_cw_ns4096.npz')
 cw = nmt.NmtCovarianceWorkspace()
 if not os.path.isfile(fname):
     cw.compute_coupling_coefficients(f0, f0)
+    cw.write_to(fname)
 else:
     cw.read_from(fname)
 
