@@ -87,8 +87,7 @@ des_Nls_ell = des_Nls_file['l']
 des_Nls_arr = des_Nls_file['cls']
 
 for i, nls in enumerate(des_Nls_arr):
-    nls = interp1d(des_Nls_ell, des_Nls_arr)(th_ell)
-    des_th_cl00_matrix[i, i] += nls
+    des_th_cl00_matrix[i, i] += interp1d(des_Nls_ell, nls)(th_ell)
 
 
 ##############################################################################
