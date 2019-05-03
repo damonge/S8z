@@ -96,27 +96,28 @@ for i, nls in enumerate(des_Nls_arr):
 ##############################################################################
 ##############################################################################
 
+des_f0 = nmt.NmtField(des_mask, [des_mapi_dg])
+f0 = des_f0
 
 ##############################################################################
 ###############  Load already computed workspace   ###############
 ##############################################################################
 fname = os.path.join(output_folder, 'des_w00_ns4096.dat')
-if not os.path.isfile(fname): #spin0-spin0
-    raise ValueError('Missing workspace: ', fname)
-
 w00 = nmt.NmtWorkspace()
-w00.read_from(fname)
+if not os.path.isfile(fname): #spin0-spin0
+    w00.compute_coupling_matrix(f0, f0, b)  # raise ValueError('Missing workspace: ', fname)
+else:
+    w00.read_from(fname)
 
 ##############################################################################
 ################### Compute covariance coupling coefficients #################
 ##############################################################################
-fname = os.path.join(output_folder, 'des_cw00_ns4096.npz')
+fname = os.path.join(output_folder, 'des_cw_ns4096.npz')
+cw = nmt.NmtCovarianceWorkspace()
 if not os.path.isfile(fname):
-    cw = nmt.NmtCovarianceWorkspace()
-
-    des_f0 = nmt.NmtField(des_mask, [des_mapi_dg])
-    f0 = des_f0
     cw.compute_coupling_coefficients(f0, f0)
+else:
+    cw.read_from(fname)
 
 ##############################################################################
 #################  Compute coupling cov matrix for bins i, j #################
