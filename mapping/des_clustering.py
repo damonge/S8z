@@ -1,8 +1,8 @@
 import numpy as np
 import healpy as hp
-import matplotlib.pyplot as plt
 from astropy.io import fits
 import os
+from maptools import get_fits_iterator, get_weighted_maps
 
 # Angular resolution
 nside = 4096
@@ -34,66 +34,49 @@ for i in range(5):
                np.transpose([df['Z_LOW'],df['Z_MID'],df['Z_HIGH'],df['BIN%d' % (i+1)]]),
                header='[0]-z_ini [1]-z_mid [2]-z_end [3]-dndz')
 
-# Read catalog
-print("Reading catalog")
-d = fits.open(predir_in + fname_cat)[1].data
-
 # Create mask
 print("Reading mask")
 msk = hp.read_map(predir_in + fname_mask, verbose=False)
 msk[msk == hp.UNSEEN] = 0
 msk = hp.ud_grade(msk, nside_out=nside)
-print("fsky = %lE, %lf" % (np.mean(msk), 4*np.pi*np.mean(msk)*(180/np.pi)**2))
-hp.mollview(msk);
+print(" fsky = %lE, %lf" % (np.mean(msk),
+                            4*np.pi*np.mean(msk)*(180/np.pi)**2))
+print(" Writing to file")
 hp.write_map(predir_out + "mask_ns%d.fits" % nside, msk, overwrite=True)
 
-# Create number count maps
-def mk_nmap(cat, ns, mask, keep=None, do_weights=False):
-    """
-    ns -> nside
-    cat -> recarray with fields 'DEC' and 'RA'
-    keep -> mask to apply to the data (None for no mask)
-    do_weights -> apply systematics weights
-    return -> map of counts per pixel
-    """
-    # Apply cuts
-    if keep is None:
-        cat_use = cat
-    else:
-        cat_use = cat[keep]
-
-    # Count galaxies per pixel
-    npix = hp.nside2npix(ns)
-    ipix = hp.ang2pix(ns,
-                      np.radians(90 - cat_use['DEC']),
-                      np.radians(cat_use['RA']))
-    if do_weights:
-        w = cat_use['weight']
-    else:
-        w = None
-    nmap=np.bincount(ipix, weights=w, minlength=npix)+0.
-
-    return nmap
-
 # Create maps for each redshift bin
-print("Per-bin count maps")
+print("Creating maps")
+# Iterator that reads fits file in chunks
+itr = get_fits_iterator(predir_in + fname_cat, ['RA', 'DEC', 'weight', 'ZREDMAGIC'],
+                        nrows_per_chunk=1000000)
+# Generate masks for each redshift bin
+masks = []
 for iz, zr in enumerate(zbins):
-    keep = ((d['ZREDMAGIC'] >= zr[0]) & (d['ZREDMAGIC'] < zr[1]))
-    print(zr, np.sum(keep), np.sum(d[keep]['weight']))
-    nmap = mk_nmap(d, nside, msk, keep=keep)
-    hp.mollview(nmap)
+    masks.append(['range','ZREDMAGIC',zr[0],zr[1]])
+# One final map with all galaxies in it
+masks.append(['all'])
+# Use iterator and masks to create maps
+nmaps, wmaps, _ = get_weighted_maps(itr, nside, 'RA', 'DEC',
+                                    name_weight='weight', masks=masks)
+print(" Writing to file")
+# Write to file
+for iz in range(len(zbins)):
+    print(iz)
     hp.write_map(predir_out + "map_counts_bin%d_ns%d.fits" % (iz, nside),
-                 nmap, overwrite=True)
-    nmap = mk_nmap(d, nside, msk, keep=keep, do_weights=True)
+                 nmaps[iz], overwrite=True)
     hp.write_map(predir_out + "map_counts_w_bin%d_ns%d.fits" % (iz, nside),
-                 nmap, overwrite=True)
-
+                 wmaps[iz], overwrite=True)
+hp.write_map(predir_out + "map_counts_all_ns%d.fits" % nside,
+             nmaps[-1], overwrite=True)
+hp.write_map(predir_out + "map_counts_w_all_ns%d.fits" % nside,
+             wmaps[-1], overwrite=True)
+    
 # Create map from random catalog
 print("Random count map")
-dr = fits.open(predir_in + fname_ran)[1].data
-nmap_r = mk_nmap(dr, nside, msk)
+itr = get_fits_iterator(predir_in + fname_ran, ['RA', 'DEC'],
+                        nrows_per_chunk=1000000)
+nmap_r, _, _ = get_weighted_maps(itr, nside, "RA", "DEC")
+print(nmap_r.shape)
+print(" Writing to file")
 hp.write_map(predir_out + "map_counts_random_ns%d.fits" % nside,
              nmap_r, overwrite=True)
-
-hp.mollview(nmap_r)
-plt.show()

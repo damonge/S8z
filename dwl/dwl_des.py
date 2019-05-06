@@ -1,7 +1,7 @@
 import os
 from dwl_utils import dwl_file, mkdir, unzip
 
-predir=os.path.abspath('/bluewhale/damonge/S8z_data')
+predir=os.path.abspath('/mnt/bluewhale/damonge/S8z_data')
 
 # Create data directory
 mkdir(predir+"/DES_data")
@@ -17,7 +17,7 @@ os.chdir("gold_catalog")
 for l in f:
     l=l.rstrip('\n')
     fname=l.split('/')[-1]
-    dwl_file(fname,l)
+#    dwl_file(fname,l)
 os.chdir("../")
 f.close()
 
