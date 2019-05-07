@@ -26,14 +26,14 @@ def get_fits_iterator(fname, colnames, hdu=1, nrows_per_chunk=None):
         yield data
 
 def get_weighted_maps(iterator, nside, name_ra, name_dec,
-                      name_weight=None, name_field=None,
+                      name_weight=None, names_field=None,
                       masks=None):
 
     npix = hp.nside2npix(nside)
 
     if masks is None:
         nmaps = 1
-        masks = [['all']]
+        masks = [[['all']]]
     else:
         nmaps = len(masks)
 
@@ -42,8 +42,9 @@ def get_weighted_maps(iterator, nside, name_ra, name_dec,
         map_weights = np.zeros([nmaps, npix])
     else:
         map_weights = None
-    if name_field is not None:
-        map_field = np.zeros([nmaps, npix])
+    if names_field is not None:
+        nfields = len(names_field)
+        map_field = np.zeros([nmaps, nfields, npix])
     else:
         map_field = None
 
@@ -52,12 +53,13 @@ def get_weighted_maps(iterator, nside, name_ra, name_dec,
                           np.radians(90 - d[name_dec]),
                           np.radians(d[name_ra]))
         print(len(ipix))
-        for im, m in enumerate(masks):
+        for im, mm in enumerate(masks):
             mask = np.ones(len(ipix), dtype=bool)
-            if m[0] == 'tag':
-                mask = mask & (d[m[1]] == m[2])
-            elif m[0] == 'range':
-                mask = mask & (d[m[1]] < m[3]) & (d[m[1]] >= m[2])
+            for m in mm:
+                if m[0] == 'tag':
+                    mask = mask & (d[m[1]] == m[2])
+                elif m[0] == 'range':
+                    mask = mask & (d[m[1]] < m[3]) & (d[m[1]] >= m[2])
 
             ip = ipix[mask]
             map_counts[im, :] += np.bincount(ip,
@@ -67,23 +69,25 @@ def get_weighted_maps(iterator, nside, name_ra, name_dec,
                 map_weights[im, :] += np.bincount(ip,
                                                   minlength=npix,
                                                   weights=w)
-                if name_field is not None:
-                    f = d[name_field][mask]
-                    map_field[im, :] += np.bincount(ip,
-                                                    minlength=npix,
-                                                    weights=w * f)
+                if names_field is not None:
+                    for i_f, n_f in enumerate(names_field):
+                        f = d[n_f][mask]
+                        map_field[im, i_f, :] += np.bincount(ip,
+                                                             minlength=npix,
+                                                             weights=w * f)
             else:
-                if name_field is not None:
-                    f = d[name_field][mask]
-                    map_field[im, :] += np.bincount(ip,
-                                                    minlength=npix,
-                                                    weights=f)
+                if names_field is not None:
+                    for i_f, n_f in enumerate(names_field):
+                        f = d[n_f][mask]
+                        map_field[im, i_f, :] += np.bincount(ip,
+                                                             minlength=npix,
+                                                             weights=f)
 
     if nmaps == 1:
         map_counts = map_counts.flatten()
         if map_weights is not None:
             map_weights = map_weights.flatten()
         if map_field is not None:
-            map_field = map_field.flatten()
+            map_field = map_field.reshape([nfields, npix])
 
     return map_counts, map_weights, map_field

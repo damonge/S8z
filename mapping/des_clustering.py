@@ -52,9 +52,9 @@ itr = get_fits_iterator(predir_in + fname_cat, ['RA', 'DEC', 'weight', 'ZREDMAGI
 # Generate masks for each redshift bin
 masks = []
 for iz, zr in enumerate(zbins):
-    masks.append(['range','ZREDMAGIC',zr[0],zr[1]])
+    masks.append([['range','ZREDMAGIC',zr[0],zr[1]]])
 # One final map with all galaxies in it
-masks.append(['all'])
+masks.append([['all']])
 # Use iterator and masks to create maps
 nmaps, wmaps, _ = get_weighted_maps(itr, nside, 'RA', 'DEC',
                                     name_weight='weight', masks=masks)
