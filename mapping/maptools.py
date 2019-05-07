@@ -48,7 +48,7 @@ def get_weighted_maps(iterator, nside, name_ra, name_dec,
     else:
         map_field = None
 
-    for d in iterator:
+    for i_d,d in enumerate(iterator):
         ipix = hp.ang2pix(nside,
                           np.radians(90 - d[name_dec]),
                           np.radians(d[name_ra]))
