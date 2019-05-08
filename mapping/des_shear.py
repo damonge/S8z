@@ -50,7 +50,7 @@ nbins = 4
 print("Extracting N(z)")
 if not random_rotate:
     d = fits.open(predir_in + fname_bins)
-    np.savetxt(predir_out + "dndz_" + suffix + "_bin%d.txt" % bin_no,
+    np.savetxt(predir_out + "dndz_" + suffix + ".txt",
                np.transpose([d[hdu_dndz].data['Z_LOW'],
                              d[hdu_dndz].data['Z_MID'],
                              d[hdu_dndz].data['Z_HIGH'],
