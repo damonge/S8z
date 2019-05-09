@@ -4,7 +4,7 @@ nside=4096
 nrandom=10
 
 # Clustering
-echo python3 des_clustering.py
+echo python3 des_clustering.py ${nside}
 addqueue -q cmb -m 12 -n 1 /usr/bin/python3 des_clustering.py
 
 # Shear

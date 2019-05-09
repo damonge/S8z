@@ -3,9 +3,13 @@ import healpy as hp
 from astropy.io import fits
 import os
 from maptools import get_fits_iterator, get_weighted_maps
+import sys
+
+if len(sys.argv)<2:
+    print("Usage: des_clustering.py nside")
 
 # Angular resolution
-nside = 4096
+nside = int(sys.argv[1])
 # Root data directory
 predir_in = "/mnt/bluewhale/damonge/S8z_data/"
 # Catalog file

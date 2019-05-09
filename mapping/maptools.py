@@ -1,6 +1,7 @@
 import healpy as hp
 import numpy as np
 
+
 def get_fits_iterator(fname, colnames, hdu=1, nrows_per_chunk=None):
     import fitsio
 
@@ -91,3 +92,18 @@ def get_weighted_maps(iterator, nside, name_ra, name_dec,
             map_field = map_field.reshape([nfields, npix])
 
     return map_counts, map_weights, map_field
+
+def rotate_alm_g_c(alm_in, c2g=False):
+    if c2g:
+        coord=['C','G']
+    else:
+        coord=['G','C']
+
+    r=hp.Rotator(coord=coord)
+    return r.rotate_alm(alm_in)
+
+def rotate_map_g_c(map_in, c2g=False):
+    ns = hp.npix2nside(len(map_in))
+    alm_in = hp.map2alm(map_in)
+    alm_out = rotate_alm_g_c(alm_in, c2g=False)
+    return hp.alm2map(alm_out, ns, verbose=False)
