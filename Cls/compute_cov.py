@@ -56,7 +56,7 @@ def load_thcls(th_outdir):
     cls_arr = []
     for i in range(des_bins):
         for j in range(i, des_bins):
-            fname = os.path.join(th_outdir, 'DES_Cls_{}_{}.txt'.format(i, j))
+            fname = os.path.join(th_outdir, 'DES_Cls_lmax3xNside_{}_{}.txt'.format(i, j))
             if not os.path.isfile(fname): #spin0-spin0
                 raise ValueError('Missing workspace: ', fname)
 
@@ -87,7 +87,8 @@ des_Nls_ell = des_Nls_file['l']
 des_Nls_arr = des_Nls_file['cls']
 
 for i, nls in enumerate(des_Nls_arr):
-    des_th_cl00_matrix[i, i] += interp1d(des_Nls_ell, nls)(th_ell)
+    des_th_cl00_matrix[i, i] += interp1d(des_Nls_ell, nls, bounds_error=False,
+                                         fill_value=(nls[0], nls[-1]))(th_ell)
 
 
 ##############################################################################
