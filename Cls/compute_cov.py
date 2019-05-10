@@ -130,20 +130,43 @@ else:
 #                         cla1b1, cla1b2, cla2b1, cla2b2,
 #                         wa, wb=None)
 
-for bin_a1 in range(5):
-    for bin_a2 in range(5):
-        for bin_b1 in range(5):
-            for bin_b2 in range(5):
+list_bins = [str(i) for i in range(des_bins)]
 
-                cla1b1 = des_th_cl00_matrix[bin_a1, bin_b1]
-                cla1b2 = des_th_cl00_matrix[bin_a1, bin_b2]
-                cla2b1 = des_th_cl00_matrix[bin_a2, bin_b1]
-                cla2b2 = des_th_cl00_matrix[bin_a2, bin_b2]
+cls_bins = []
+for i in list_bins:
+    tmp = []
+    for j in list_bins:
+        tmp.append(i+j)
+    cls_bins.append(tmp)
 
-                fname = os.path.join(output_folder, 'des_c0000_{}{}{}{}.npz'.format(bin_a1, bin_a2, bin_b1, bin_b2))
-                if os.path.isfile(fname):
-                    continue
+cls_bins = np.array(cls_bins)
 
-                c0000 = nmt.gaussian_covariance(cw, 0, 0, 0, 0,
-                                                [cla1b1], [cla1b2], [cla2b1], [cla2b2], w00)
-                np.savez_compressed(fname, c0000)
+cov_bins = []
+i, j = np.triu_indices(des_bins)
+for clij in cls_bins[i, j]:
+    tmp = []
+    for clkl in cls_bins[i, j]:
+        tmp.append(clij+ clkl)
+    cov_bins.append(tmp)
+
+cov_bins = np.array(cov_bins)
+i, j = np.triu_indices(cov_bins.shape[0])
+
+for fields in cov_bins[i, j]:
+    bin_a1 = fields[0]
+    bin_a2 = fields[1]
+    bin_b1 = fields[2]
+    bin_b2 = fields[2]
+
+    cla1b1 = des_th_cl00_matrix[bin_a1, bin_b1]
+    cla1b2 = des_th_cl00_matrix[bin_a1, bin_b2]
+    cla2b1 = des_th_cl00_matrix[bin_a2, bin_b1]
+    cla2b2 = des_th_cl00_matrix[bin_a2, bin_b2]
+
+    fname = os.path.join(output_folder, 'des_c0000_{}.npz'.format(fields))
+    if os.path.isfile(fname):
+        continue
+
+    c0000 = nmt.gaussian_covariance(cw, 0, 0, 0, 0,
+                                    [cla1b1], [cla1b2], [cla2b1], [cla2b2], w00)
+    np.savez_compressed(fname, c0000)
