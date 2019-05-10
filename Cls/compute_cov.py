@@ -156,7 +156,7 @@ for fields in cov_bins[i, j]:
     bin_a1 = fields[0]
     bin_a2 = fields[1]
     bin_b1 = fields[2]
-    bin_b2 = fields[2]
+    bin_b2 = fields[3]
 
     cla1b1 = des_th_cl00_matrix[bin_a1, bin_b1]
     cla1b2 = des_th_cl00_matrix[bin_a1, bin_b2]
