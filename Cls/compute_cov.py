@@ -125,15 +125,25 @@ else:
 ##############################################################################
 #################  Compute coupling cov matrix for bins i, j #################
 ##############################################################################
-for i in range(5):
-    clt1t1 = des_th_cl00_matrix[i, i]
-    for j in range(i, 5):
-        clt2t2 = des_th_cl00_matrix[j, j]
-        clt1t2 = des_th_cl00_matrix[i, j]
 
-        fname = os.path.join(output_folder, 'des_c0000_{}{}.npz'.format(i, j))
-        if os.path.isfile(fname):
-            continue
+# nmt.gaussian_covariance(cw, spin_a1, spin_a2, spin_b1, spin_b2,
+#                         cla1b1, cla1b2, cla2b1, cla2b2,
+#                         wa, wb=None)
 
-        c0000 = nmt.gaussian_covariance(cw, 0, 0, 0, 0, [clt1t1], [clt1t2], [clt1t2], [clt2t2], w00)
-        np.savez_compressed(fname, c0000)
+for bin_a1 in range(5):
+    for bin_a2 in range(5):
+        for bin_b1 in range(5):
+            for bin_b2 in range(5):
+
+                cla1b1 = des_th_cl00_matrix[bin_a1, bin_b1]
+                cla1b2 = des_th_cl00_matrix[bin_a1, bin_b2]
+                cla2b1 = des_th_cl00_matrix[bin_a2, bin_b1]
+                cla2b2 = des_th_cl00_matrix[bin_a2, bin_b2]
+
+                fname = os.path.join(output_folder, 'des_c0000_{}{}{}{}.npz'.format(bin_a1, bin_a2, bin_b1, bin_b2))
+                if os.path.isfile(fname):
+                    continue
+
+                c0000 = nmt.gaussian_covariance(cw, 0, 0, 0, 0,
+                                                [cla1b1], [cla1b2], [cla2b1], [cla2b2], w00)
+                np.savez_compressed(fname, c0000)
