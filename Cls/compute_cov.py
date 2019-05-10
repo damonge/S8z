@@ -3,6 +3,7 @@
 from __future__ import print_function
 from scipy.interpolate import interp1d
 import os
+import sys
 import pymaster as nmt
 import numpy as np
 import healpy as hp
@@ -152,7 +153,9 @@ for clij in cls_bins[i, j]:
 cov_bins = np.array(cov_bins)
 i, j = np.triu_indices(cov_bins.shape[0])
 
-for fields in cov_bins[i, j]:
+cov_to_compute = cov_bins[i, j]
+
+for step, fields in enumerate(cov_to_compute):
     bin_a1 = fields[0]
     bin_a2 = fields[1]
     bin_b1 = fields[2]
@@ -167,6 +170,8 @@ for fields in cov_bins[i, j]:
     if os.path.isfile(fname):
         continue
 
+    sys.stdout.write("Computing:{}\n".format(fname))
+    sys.stdout.write("Computation {} out of {}\n".format(step, cov_to_compute.shape[0]))
     c0000 = nmt.gaussian_covariance(cw, 0, 0, 0, 0,
                                     [cla1b1], [cla1b2], [cla2b1], [cla2b2], w00)
     np.savez_compressed(fname, c0000)
