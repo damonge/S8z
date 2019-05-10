@@ -156,10 +156,10 @@ i, j = np.triu_indices(cov_bins.shape[0])
 cov_to_compute = cov_bins[i, j]
 
 for step, fields in enumerate(cov_to_compute):
-    bin_a1 = fields[0]
-    bin_a2 = fields[1]
-    bin_b1 = fields[2]
-    bin_b2 = fields[3]
+    bin_a1 = int(fields[0])
+    bin_a2 = int(fields[1])
+    bin_b1 = int(fields[2])
+    bin_b2 = int(fields[3])
 
     cla1b1 = des_th_cl00_matrix[bin_a1, bin_b1]
     cla1b2 = des_th_cl00_matrix[bin_a1, bin_b2]
