@@ -105,16 +105,41 @@ des_maps_e2[np.isnan(des_maps_e2)] = 0.
 #
 # ###### Test ######
 
-import sys
-sys.exit()
 ##############################################################################
 ############################# Planck Lensing #################################
 ##############################################################################
 
+planck_folder = 'planck_lensing'
+planck_data_folder = os.path.join(data_folder, planck_folder)
+fname = os.path.join(planck_data_folder, 'mask_ns4096.fits')
+planck_mask = hp.read_map(fname)
+fname = os.path.join(planck_data_folder, 'map_kappa_ns4096.fits')
+planck_map_kappa = hp.read_map(fname)
+
+##############################################################################
+########################## Putting all together ##############################
+##############################################################################
+
+maps = np.empty((len(des_maps_dg) + len(des_maps_e1) * 2 + 1, planck_map_kappa.shape[0]))
+maps[:len(des_maps_dg)] = des_maps_dg
+maps[-1] = planck_map_kappa
+
+ix = len(des_maps_dg)
+for i, map_e1 in enumerate(des_maps_e1):
+    maps[ix] = map_e1
+    maps[ix+1] = des_maps_e2[i]
+    ix += 2
+
+
+# print(maps.shape)
+# print(np.all(maps[-1] == planck_map_kappa))
 
 ##############################################################################
 ############################# NaMaster stuff #################################
 ##############################################################################
+
+import sys
+sys.exit()
 
 if o.plot_stuff:
     hp.mollview(des_mask)
