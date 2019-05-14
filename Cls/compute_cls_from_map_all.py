@@ -130,9 +130,21 @@ for i, map_e1 in enumerate(des_maps_e1):
     maps[ix+1] = des_maps_e2[i]
     ix += 2
 
-
 # print(maps.shape)
 # print(np.all(maps[-1] == planck_map_kappa))
+
+masks = [0] * len(des_maps_dg) + [1, 1] + [2, 2] + [3, 3] + [4, 4] + [5]
+
+masks_dic = {0: des_mask,
+             5: planck_mask}
+
+for i, maski in enumerate(des_mask_gwl):
+    masks_dic.update({i+1: maski})
+
+#Set up binning scheme
+fsky = np.mean(masks)
+d_ell = int(1./fsky)
+b = nmt.NmtBin(des_nside,nlb=d_ell)
 
 ##############################################################################
 ############################# NaMaster stuff #################################
@@ -141,15 +153,6 @@ for i, map_e1 in enumerate(des_maps_e1):
 import sys
 sys.exit()
 
-if o.plot_stuff:
-    hp.mollview(des_mask)
-    for mapi in des_maps_dg:
-        hp.mollview(mapi)
-
-#Set up binning scheme
-fsky = np.mean(des_mask)
-d_ell = int(1./fsky)
-b = nmt.NmtBin(des_nside,nlb=d_ell)
 
 #Generate an initial simulation
 def get_fields(maps_dg):
