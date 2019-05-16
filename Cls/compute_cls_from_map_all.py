@@ -191,19 +191,61 @@ for i in range(len(maps)):
 ##############################################################################
 # Compute Cls
 ##############################################################################
+def get_nelems_spin(spin):
+    if spin == 0:
+        return 1
+    if spin == 2:
+        return 2
 
-# Compute cls
-cl00_arr = []
-for i, f0i in enumerate(des_fields):
-    for f0j in des_fields[i:]:
-        cl00 = w00.decouple_cell(nmt.compute_coupled_cell(f0i, f0j))[0]
-        cl00_arr.append(cl00)
+# i_triu, j_triu = np.triu_indices(len(maps))
 
-cl00_matrix = np.empty((len(des_fields), len(des_fields), len(cl00)),
-                       dtype=cl00.dtype)
-i, j = np.triu_indices(len(des_fields))
-cl00_matrix[i, j] = cl00_arr
-cl00_matrix[j, i] = cl00_arr
+cl_matrix = np.empty((len(maps), len(maps), b.get_n_bands))
+
+index1 = 0
+c = 0
+for c1, f1 in enumerate(fields):
+    index2 = index1
+    dof1 = get_nelems_spin(spins[c1])
+    for c2, f2 in enumerate(fields[c1:]):
+        c2 += c1
+        dof2 = get_nelems_spin(spins[c2])
+        ws = nmt.NmtWorkspace()
+        ws.read_from(workspaces_fnames_ar[c])
+
+        cls = ws.decouple_cell(nmt.compute_coupled_cell(f1, f2)).reshape((dof1, dof2, -1))
+
+        # from matplotlib import pyplot as plt
+        # cls_true = (f['cls'] + f['nls'])[index1 : index1 + dof1, index2 : index2 + dof2].reshape(dof1 * dof2, -1)
+        # print(cls_true.shape)
+        # print(cls.reshape(dof1 * dof2, -1).shape)
+        # for cli_true, cli in zip(cls_true, cls.reshape(dof1 * dof2, -1)):
+        #     print(cli)
+        #     plt.suptitle("{}, {}".format(dof1, dof2))
+        #     plt.loglog(l, cli_true, b.get_effective_ells(), cli, 'o')
+        #     plt.show()
+        #     plt.close()
+
+        cl_matrix[index1 : index1 + dof1, index2 : index2 + dof2] = cls
+
+         # from matplotlib import pyplot as plt
+         # for cli_true, cli in zip(cls_true,
+         #                          cl_ar[index1 : index1 + dof1, index2 : index2 + dof2].reshape(dof1 * dof2, -1)):
+         #     plt.suptitle("{}, {}".format(dof1, dof2))
+         #     plt.loglog(l, cli_true, b.get_effective_ells(), cli, 'o')
+         #     plt.show()
+         #     plt.close()
+
+        index2 += dof2
+        c += 1
+    index1 += dof1
+
+i, j = np.triu_indices(len(maps))
+cl_arr = cl_matrix[i, j]
+cl_matrix[j, i] = cl_arr
+
+##############################################################################
+# Compute Noise
+##############################################################################
 
 # Compute noise
 des_N_mean_srad = des_N_mean / (4 * np.pi) * hp.nside2npix(des_nside)
