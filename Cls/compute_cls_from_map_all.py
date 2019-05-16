@@ -142,7 +142,7 @@ for i, maski in enumerate(des_mask_gwl):
     masks_dic.update({i+1: maski})
 
 #Set up binning scheme
-fsky = np.mean(masks)
+fsky = np.mean(des_mask)  # Use des_mask for binning as we had
 d_ell = int(1./fsky)
 b = nmt.NmtBin(des_nside,nlb=d_ell)
 
