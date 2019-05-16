@@ -243,25 +243,28 @@ i, j = np.triu_indices(len(maps))
 cl_arr = cl_matrix[i, j]
 cl_matrix[j, i] = cl_arr
 
-##############################################################################
-# Compute Noise
-##############################################################################
+np.savez(os.path.join(output_folder, "cl_all.npz"),
+         l=b.get_effective_ells(), cls=cl_matrix)
 
-# Compute noise
-des_N_mean_srad = des_N_mean / (4 * np.pi) * hp.nside2npix(des_nside)
-N_ell = des_mask.sum() / hp.nside2npix(des_nside) / des_N_mean_srad
-
-N_bpw = []
-for i, N_ell_mapi in enumerate(N_ell):
-    N_bpw.append(w00.decouple_cell([N_ell_mapi * np.ones(3 * des_nside)])[0])
-    cl00_matrix[i, i] -= N_bpw[-1]
-
-N_bpw = np.array(N_bpw)
-
-np.savez(os.path.join(output_folder, "des_w_cl_ns4096"),
-         l=b.get_effective_ells(), cls=cl00_matrix)
-np.savez(os.path.join(output_folder, "des_w_cl_shot_noise_ns4096"),
-         l=b.get_effective_ells(), cls=N_bpw)
+# ##############################################################################
+# # Compute Noise
+# ##############################################################################
+#
+# # Compute noise
+# des_N_mean_srad = des_N_mean / (4 * np.pi) * hp.nside2npix(des_nside)
+# N_ell = des_mask.sum() / hp.nside2npix(des_nside) / des_N_mean_srad
+#
+# N_bpw = []
+# for i, N_ell_mapi in enumerate(N_ell):
+#     N_bpw.append(w00.decouple_cell([N_ell_mapi * np.ones(3 * des_nside)])[0])
+#     cl00_matrix[i, i] -= N_bpw[-1]
+#
+# N_bpw = np.array(N_bpw)
+#
+# np.savez(os.path.join(output_folder, "des_w_cl_ns4096"),
+#          l=b.get_effective_ells(), cls=cl00_matrix)
+# np.savez(os.path.join(output_folder, "des_w_cl_shot_noise_ns4096"),
+#          l=b.get_effective_ells(), cls=N_bpw)
 
 
 # ######################### Test ############################
