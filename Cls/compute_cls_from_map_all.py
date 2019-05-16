@@ -141,6 +141,8 @@ masks_dic = {0: des_mask,
 for i, maski in enumerate(des_mask_gwl):
     masks_dic.update({i+1: maski})
 
+spins = [0] * len(des_maps_dg) + [2] * 2 * len(des_maps_e1) + [0]
+
 #Set up binning scheme
 fsky = np.mean(des_mask)  # Use des_mask for binning as we had
 d_ell = int(1./fsky)
@@ -150,40 +152,45 @@ b = nmt.NmtBin(des_nside,nlb=d_ell)
 ############################# NaMaster stuff #################################
 ##############################################################################
 
-import sys
-sys.exit()
+##############################################################################
+# Generate fields for each map
+##############################################################################
+fields = []
+for mapi in des_maps_dg:
+    fields.append(nmt.NmtField(des_mask, [mapi]))
 
+for i in range(des_maps_e1.shape[0]):
+    sq = des_maps_e1[i]
+    su = - des_maps_e2[i]
+    f = nmt.NmtField(des_mask_gwl[i], [sq, su])
+    fields += [f, f]
 
-#Generate an initial simulation
-def get_fields(maps_dg):
-    """
-    Generate a simulated field.
-    It returns two NmtField objects for a spin-0 and a spin-2 field.
+fields.append(nmt.NmtField(planck_mask, [planck_map_kappa]))
 
-    :param fsk: a fm.FlatMapInfo object.
-    :param mask: a sky mask.
-    :param w_cont: deproject any contaminants? (not implemented yet)
-    """
-    fields = []
-    for mapi in maps_dg:
-        fields.append(nmt.NmtField(des_mask, [mapi]))
+##############################################################################
+# Generate workspaces
+##############################################################################
+workspaces_fnames_ar = []  # Use fnames to save space
 
-    return fields
+for i in range(len(maps)):
+    for j in range(i, len(maps)):
+        spin1 = spins[i]
+        spin2 = spins[j]
+        mask1 = masks[i]
+        mask2 = masks[j]
+        fname = os.path.join(output_folder, 'w{}{}_{}{}.dat'.format(spin1, spin2, mask1, mask2))
+        if not os.path.isfile(fname):
+            w = nmt.NmtWorkspace()
+            f1 = fields[i]
+            f2 = fields[j]
+            w.compute_coupling_matrix(f1, f2, b)
+            w.write_to(fname)
 
-des_fields = get_fields(des_maps_dg)
+        workspaces_fnames_ar.append(fname)
 
-#Compute mode-coupling matrix
-#Use initial fields to generate coupling matrix
-w00=nmt.NmtWorkspace();
-fname = os.path.join(output_folder, 'des_w00_ns4096.dat')
-if not os.path.isfile(fname): #spin0-spin0
-    print("Computing 00")
-    f0 = des_fields[0]  # All of them have same mask, so just need one w00
-    w00.compute_coupling_matrix(f0, f0, b)
-    w00.write_to(fname);
-else :
-    w00.read_from(fname)
-
+##############################################################################
+# Compute Cls
+##############################################################################
 
 # Compute cls
 cl00_arr = []
