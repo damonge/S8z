@@ -199,7 +199,7 @@ def get_nelems_spin(spin):
 
 # i_triu, j_triu = np.triu_indices(len(maps))
 
-cl_matrix = np.empty((len(maps), len(maps), b.get_n_bands))
+cl_matrix = np.empty((len(maps), len(maps), b.get_n_bands()))
 
 index1 = 0
 c = 0
