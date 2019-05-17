@@ -202,15 +202,26 @@ def get_nelems_spin(spin):
 cl_matrix = np.empty((len(maps), len(maps), b.get_n_bands()))
 
 index1 = 0
-c = 0
+dof1 = dof2 = 0
 for c1, f1 in enumerate(fields):
     index2 = index1
-    dof1 = get_nelems_spin(spins[c1])
+    if dof1 == 2:
+        dof1 = 0
+        continue
+    spin1 = spins[c1]
+    mask1 = masks[c1]
+    dof1 = get_nelems_spin(spin1)
     for c2, f2 in enumerate(fields[c1:]):
         c2 += c1
-        dof2 = get_nelems_spin(spins[c2])
+        if dof2 == 2:
+            dof2 = 0
+            continue
+        spin2 = spins[c2]
+        mask2 = masks[c2]
+        dof2 = get_nelems_spin(spin2)
         ws = nmt.NmtWorkspace()
-        ws.read_from(workspaces_fnames_ar[c])
+        fname = os.path.join(output_folder, 'w{}{}_{}{}.dat'.format(spin1, spin2, mask1, mask2))
+        ws.read_from(fname)
 
         cls = ws.decouple_cell(nmt.compute_coupled_cell(f1, f2)).reshape((dof1, dof2, -1))
 
@@ -236,7 +247,6 @@ for c1, f1 in enumerate(fields):
          #     plt.close()
 
         index2 += dof2
-        c += 1
     index1 += dof1
 
 i, j = np.triu_indices(len(maps))
