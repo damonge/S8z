@@ -142,7 +142,6 @@ for i, maski in enumerate(des_mask_gwl):
     masks_dic.update({i+1: maski})
 
 spins = [0] * len(des_maps_dg) + [2] * 2 * len(des_maps_e1) + [0]
-spins_fields_norep = [0] * len(des_maps_dg) + [2] * len(des_maps_e1) + [0]
 
 #Set up binning scheme
 fsky = np.mean(des_mask)  # Use des_mask for binning as we had
@@ -160,17 +159,13 @@ fields = []
 for mapi in des_maps_dg:
     fields.append(nmt.NmtField(des_mask, [mapi]))
 
-fields_norep = []
-fields_norep = fields.copy()
 for i in range(des_maps_e1.shape[0]):
     sq = des_maps_e1[i]
     su = - des_maps_e2[i]
     f = nmt.NmtField(des_mask_gwl[i], [sq, su])
     fields += [f, f]
-    fields_norep.append(f)
 
 fields.append(nmt.NmtField(planck_mask, [planck_map_kappa]))
-fields_norep.append(fields[-1])
 
 ##############################################################################
 # Generate workspaces
@@ -208,12 +203,12 @@ cl_matrix = np.empty((len(maps), len(maps), b.get_n_bands()))
 
 index1 = 0
 c = 0
-for c1, f1 in enumerate(fields_norep):
+for c1, f1 in enumerate(fields):
     index2 = index1
-    dof1 = get_nelems_spin(spins_fields_norep[c1])
-    for c2, f2 in enumerate(fields_norep[c1:]):
+    dof1 = get_nelems_spin(spins[c1])
+    for c2, f2 in enumerate(fields[c1:]):
         c2 += c1
-        dof2 = get_nelems_spin(spins_fields_norep[c2])
+        dof2 = get_nelems_spin(spins[c2])
         ws = nmt.NmtWorkspace()
         ws.read_from(workspaces_fnames_ar[c])
 
