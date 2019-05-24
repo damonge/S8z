@@ -199,83 +199,139 @@ def get_nelems_spin(spin):
 
 # i_triu, j_triu = np.triu_indices(len(maps))
 
-cl_matrix = np.empty((len(maps), len(maps), b.get_n_bands()))
+cls_noise_file = os.path.join(output_folder, "cl_all_with_noise.npz")
+if os.path.isfile(cls_noise_file):
+    cl_matrix = np.load(cls_noise_file)['cls']
+else:
+    cl_matrix = np.empty((len(maps), len(maps), b.get_n_bands()))
 
-index1 = 0
-dof1 = dof2 = 0
-for c1, f1 in enumerate(fields):
-    index2 = index1
-    if dof1 == 2:
-        dof1 = 0
-        continue
-    spin1 = spins[c1]
-    mask1 = masks[c1]
-    dof1 = get_nelems_spin(spin1)
-    for c2, f2 in enumerate(fields[c1:]):
-        c2 += c1
-        if dof2 == 2:
-            dof2 = 0
+    index1 = 0
+    dof1 = dof2 = 0
+    for c1, f1 in enumerate(fields):
+        index2 = index1
+        if dof1 == 2:
+            dof1 = 0
             continue
-        spin2 = spins[c2]
-        mask2 = masks[c2]
-        dof2 = get_nelems_spin(spin2)
-        ws = nmt.NmtWorkspace()
-        fname = os.path.join(output_folder, 'w{}{}_{}{}.dat'.format(spin1, spin2, mask1, mask2))
-        ws.read_from(fname)
+        spin1 = spins[c1]
+        mask1 = masks[c1]
+        dof1 = get_nelems_spin(spin1)
+        for c2, f2 in enumerate(fields[c1:]):
+            c2 += c1
+            if dof2 == 2:
+                dof2 = 0
+                continue
+            spin2 = spins[c2]
+            mask2 = masks[c2]
+            dof2 = get_nelems_spin(spin2)
+            ws = nmt.NmtWorkspace()
+            fname = os.path.join(output_folder, 'w{}{}_{}{}.dat'.format(spin1, spin2, mask1, mask2))
+            ws.read_from(fname)
 
-        cls = ws.decouple_cell(nmt.compute_coupled_cell(f1, f2)).reshape((dof1, dof2, -1))
+            cls = ws.decouple_cell(nmt.compute_coupled_cell(f1, f2)).reshape((dof1, dof2, -1))
 
-        # from matplotlib import pyplot as plt
-        # cls_true = (f['cls'] + f['nls'])[index1 : index1 + dof1, index2 : index2 + dof2].reshape(dof1 * dof2, -1)
-        # print(cls_true.shape)
-        # print(cls.reshape(dof1 * dof2, -1).shape)
-        # for cli_true, cli in zip(cls_true, cls.reshape(dof1 * dof2, -1)):
-        #     print(cli)
-        #     plt.suptitle("{}, {}".format(dof1, dof2))
-        #     plt.loglog(l, cli_true, b.get_effective_ells(), cli, 'o')
-        #     plt.show()
-        #     plt.close()
+            # from matplotlib import pyplot as plt
+            # cls_true = (f['cls'] + f['nls'])[index1 : index1 + dof1, index2 : index2 + dof2].reshape(dof1 * dof2, -1)
+            # print(cls_true.shape)
+            # print(cls.reshape(dof1 * dof2, -1).shape)
+            # for cli_true, cli in zip(cls_true, cls.reshape(dof1 * dof2, -1)):
+            #     print(cli)
+            #     plt.suptitle("{}, {}".format(dof1, dof2))
+            #     plt.loglog(l, cli_true, b.get_effective_ells(), cli, 'o')
+            #     plt.show()
+            #     plt.close()
 
-        cl_matrix[index1 : index1 + dof1, index2 : index2 + dof2] = cls
+            cl_matrix[index1 : index1 + dof1, index2 : index2 + dof2] = cls
 
-         # from matplotlib import pyplot as plt
-         # for cli_true, cli in zip(cls_true,
-         #                          cl_ar[index1 : index1 + dof1, index2 : index2 + dof2].reshape(dof1 * dof2, -1)):
-         #     plt.suptitle("{}, {}".format(dof1, dof2))
-         #     plt.loglog(l, cli_true, b.get_effective_ells(), cli, 'o')
-         #     plt.show()
-         #     plt.close()
+             # from matplotlib import pyplot as plt
+             # for cli_true, cli in zip(cls_true,
+             #                          cl_ar[index1 : index1 + dof1, index2 : index2 + dof2].reshape(dof1 * dof2, -1)):
+             #     plt.suptitle("{}, {}".format(dof1, dof2))
+             #     plt.loglog(l, cli_true, b.get_effective_ells(), cli, 'o')
+             #     plt.show()
+             #     plt.close()
 
-        index2 += dof2
-    index1 += dof1
+            index2 += dof2
+        index1 += dof1
 
-i, j = np.triu_indices(len(maps))
-cl_arr = cl_matrix[i, j]
-cl_matrix[j, i] = cl_arr
+    i, j = np.triu_indices(len(maps))
+    cl_arr = cl_matrix[i, j]
+    cl_matrix[j, i] = cl_arr
 
-np.savez(os.path.join(output_folder, "cl_all.npz"),
-         l=b.get_effective_ells(), cls=cl_matrix)
+    np.savez(cls_noise_file,
+             l=b.get_effective_ells(), cls=cl_matrix)
 
 # ##############################################################################
 # # Compute Noise
 # ##############################################################################
-#
-# # Compute noise
-# des_N_mean_srad = des_N_mean / (4 * np.pi) * hp.nside2npix(des_nside)
-# N_ell = des_mask.sum() / hp.nside2npix(des_nside) / des_N_mean_srad
-#
-# N_bpw = []
-# for i, N_ell_mapi in enumerate(N_ell):
-#     N_bpw.append(w00.decouple_cell([N_ell_mapi * np.ones(3 * des_nside)])[0])
-#     cl00_matrix[i, i] -= N_bpw[-1]
-#
-# N_bpw = np.array(N_bpw)
-#
-# np.savez(os.path.join(output_folder, "des_w_cl_ns4096"),
-#          l=b.get_effective_ells(), cls=cl00_matrix)
-# np.savez(os.path.join(output_folder, "des_w_cl_shot_noise_ns4096"),
-#          l=b.get_effective_ells(), cls=N_bpw)
 
+# Compute DES galaxy clustering noise
+des_gc_noise_file = os.path.join(output_folder, "des_w_cl_shot_noise_ns4096.npz"),
+if os.path.isfile(des_gc_noise_file):
+    N_bpw = np.load(des_gc_noise_file)['cls']
+    for i, N_bpwi in N_bpw:
+        cl_matrix[i, i] -= N_bpwi
+else:
+    des_N_mean_srad = des_N_mean / (4 * np.pi) * hp.nside2npix(des_nside)
+    N_ell = des_mask.sum() / hp.nside2npix(des_nside) / des_N_mean_srad
+
+    N_bpw = []
+    ws = nmt.NmtWorkspace()
+    fname = os.path.join(output_folder, 'w{}{}_{}{}.dat'.format(0, 0, 0, 0))
+    ws.read_from(fname)
+    for i, N_ell_mapi in enumerate(N_ell):
+        N_bpw.append(ws.decouple_cell([N_ell_mapi * np.ones(3 * des_nside)])[0])
+        cl_matrix[i, i] -= N_bpw[-1]
+
+    N_bpw = np.array(N_bpw)
+
+    np.savez(des_gc_noise_file,
+             l=b.get_effective_ells(), cls=N_bpw)
+
+# Compute DES shear noise
+
+des_wl_noise_file = os.path.join(output_folder, "des_sh_metacal_rot0-10_noise_ns4096.npz")
+if os.path.isfile(des_wl_noise_file):
+    N_wl = np.load(des_wl_noise_file)['cls']
+    for ibin, N_wli in enumerate(N_wl):
+        index_bin = len(des_maps) + 2 * ibin
+        cl_matrix[index_bin : index_bin + 2, index_bin : index_bin + 2] -= N_wli
+else:
+    N_wl = []
+    for ibin in range(len(des_maps_we1)):
+        rotated_cls = []
+        for irot in range(10):
+            map_file_e1 = 'map_metacal_bin{}_rot{}_counts_e1_ns4096.fits'.format(ibin, irot)
+            map_file_e2 = 'map_metacal_bin{}_rot{}_counts_e2_ns4096.fits'.format(ibin, irot)
+
+            map_we1 = hp.read_map(map_file_e1)
+            map_we2 = hp.read_map(map_file_e2)
+
+            map_e1 = (map_we1/des_mask_gwl[ibin] - (map_we1.sum()/des_mask_gwl[ibin].sum())) / des_opm_mean[ibin]
+            map_e2 = (map_we2/des_mask_gwl[ibin] - (map_we2.sum()/des_mask_gwl[ibin].sum())) / des_opm_mean[ibin]
+            map_e1[np.isnan(des_maps_e1)] = 0.
+            map_e2[np.isnan(des_maps_e2)] = 0.
+
+            sq = map_e1[i]
+            su = -map_e2[i]
+            f = nmt.NmtField(des_mask_gwl[i], [sq, su])
+
+            ws = nmt.NmtWorkspace()
+            fname = os.path.join(output_folder, 'w22_{}{}.dat'.format(ibin, ibin))
+            ws.read_from(fname)
+
+            cls = ws.decouple_cell(nmt.compute_coupled_cell(f, f)).reshape((2, 2, -1))
+            rotated_cls.append(cls)
+
+        N_wl.append(np.mean(rotated_cls, axis=0))
+
+        index_bin = len(des_maps) + 2 * ibin
+        cl_matrix[index_bin : index_bin + 2, index_bin : index_bin + 2] -= N_wl[-1]
+
+    np.savez(des_wl_noise_file,
+             l=b.get_effective_ells(), cls=N_wl)
+
+np.savez(os.path.join(output_folder, "cl_all_no_noise"),
+         l=b.get_effective_ells(), cls=cl_matrix)
 
 # ######################### Test ############################
 # print(np.all(cl00_matrix[1,3] == cl00_matrix[3, 1]))
