@@ -308,8 +308,8 @@ else:
 
             map_e1 = (map_we1/des_mask_gwl[ibin] - (map_we1.sum()/des_mask_gwl[ibin].sum())) / des_opm_mean[ibin]
             map_e2 = (map_we2/des_mask_gwl[ibin] - (map_we2.sum()/des_mask_gwl[ibin].sum())) / des_opm_mean[ibin]
-            map_e1[np.isnan(maps_e1)] = 0.
-            map_e2[np.isnan(maps_e2)] = 0.
+            map_e1[np.isnan(map_e1)] = 0.
+            map_e2[np.isnan(map_e2)] = 0.
 
             sq = map_e1[i]
             su = -map_e2[i]
