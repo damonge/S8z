@@ -311,9 +311,9 @@ else:
             map_e1[np.isnan(map_e1)] = 0.
             map_e2[np.isnan(map_e2)] = 0.
 
-            sq = map_e1[i]
-            su = -map_e2[i]
-            f = nmt.NmtField(des_mask_gwl[i], [sq, su])
+            sq = map_e1[ibin]
+            su = -map_e2[ibin]
+            f = nmt.NmtField(des_mask_gwl[ibin], [sq, su])
 
             ws = nmt.NmtWorkspace()
             fname = os.path.join(output_folder, 'w22_{}{}.dat'.format(ibin, ibin))
