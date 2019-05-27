@@ -300,8 +300,8 @@ else:
     for ibin in range(len(des_maps_we1)):
         rotated_cls = []
         for irot in range(10):
-            map_file_e1 = 'map_metacal_bin{}_rot{}_counts_e1_ns4096.fits'.format(ibin, irot)
-            map_file_e2 = 'map_metacal_bin{}_rot{}_counts_e2_ns4096.fits'.format(ibin, irot)
+            map_file_e1 = os.path.join(output_folder, 'map_metacal_bin{}_rot{}_counts_e1_ns4096.fits'.format(ibin, irot))
+            map_file_e2 = os.path.join(output_folder, 'map_metacal_bin{}_rot{}_counts_e2_ns4096.fits'.format(ibin, irot))
 
             map_we1 = hp.read_map(map_file_e1)
             map_we2 = hp.read_map(map_file_e2)
