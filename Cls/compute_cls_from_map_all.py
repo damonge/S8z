@@ -268,7 +268,7 @@ else:
 des_gc_noise_file = os.path.join(output_folder, "des_w_cl_shot_noise_ns4096.npz")
 if os.path.isfile(des_gc_noise_file):
     N_bpw = np.load(des_gc_noise_file)['cls']
-    for i, N_bpwi in N_bpw:
+    for i, N_bpwi in enumerate(N_bpw):
         cl_matrix[i, i] -= N_bpwi
 else:
     des_N_mean_srad = des_N_mean / (4 * np.pi) * hp.nside2npix(des_nside)
