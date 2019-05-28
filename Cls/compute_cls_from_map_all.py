@@ -299,6 +299,10 @@ else:
     N_wl = []
     for ibin in range(len(des_maps_we1)):
         rotated_cls = []
+        ws = nmt.NmtWorkspace()
+        fname = os.path.join(output_folder, 'w22_{}{}.dat'.format(ibin, ibin))
+        ws.read_from(fname)
+
         for irot in range(10):
             map_file_e1 = os.path.join(des_data_folder_gwl, 'map_metacal_bin{}_rot{}_counts_e1_ns4096.fits'.format(ibin, irot))
             map_file_e2 = os.path.join(des_data_folder_gwl, 'map_metacal_bin{}_rot{}_counts_e2_ns4096.fits'.format(ibin, irot))
@@ -311,13 +315,9 @@ else:
             map_e1[np.isnan(map_e1)] = 0.
             map_e2[np.isnan(map_e2)] = 0.
 
-            sq = map_e1[ibin]
-            su = -map_e2[ibin]
+            sq = map_e1
+            su = -map_e2
             f = nmt.NmtField(des_mask_gwl[ibin], [sq, su])
-
-            ws = nmt.NmtWorkspace()
-            fname = os.path.join(output_folder, 'w22_{}{}.dat'.format(ibin, ibin))
-            ws.read_from(fname)
 
             cls = ws.decouple_cell(nmt.compute_coupled_cell(f, f)).reshape((2, 2, -1))
             rotated_cls.append(cls)
