@@ -300,7 +300,7 @@ else:
     for ibin in range(len(des_maps_we1)):
         rotated_cls = []
         ws = nmt.NmtWorkspace()
-        fname = os.path.join(output_folder, 'w22_{}{}.dat'.format(ibin, ibin))
+        fname = os.path.join(output_folder, 'w22_{}{}.dat'.format(1 + ibin, 1 + ibin))
         ws.read_from(fname)
 
         for irot in range(10):
