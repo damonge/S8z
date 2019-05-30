@@ -5,6 +5,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import healpy as hp
 import os
+import sys
 
 # pylint: disable=C0103
 
