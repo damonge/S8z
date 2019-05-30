@@ -9,7 +9,7 @@ import os
 # pylint: disable=C0103
 
 def opt_callback(option, opt, value, parser):
-        setattr(parser.values, option.dest, value.split(','))
+    setattr(parser.values, option.dest, value.split(','))
 parser = OptionParser()
 # parser.add_option('--nside', dest='nside', default=512, type=int,
 #                   help='HEALPix nside param')
@@ -22,7 +22,7 @@ parser.add_option('--plot', dest='plot_stuff', default=False, action='store_true
 ##############################################################################
 ##############################################################################
 
-output_folder = '/mnt/bluewhale/gravityls_3/S8z/Cls/all_together'
+output_folder = '/mnt/bluewhale/gravityls_3/S8z/Cls/all_together_linear_binning'
 data_folder = '/mnt/bluewhale/damonge/S8z_data/derived_products'
 # nside = 4096
 
@@ -123,6 +123,7 @@ planck_map_kappa = hp.read_map(fname)
 maps = np.empty((len(des_maps_dg) + len(des_maps_e1) * 2 + 1, planck_map_kappa.shape[0]))
 maps[:len(des_maps_dg)] = des_maps_dg
 maps[-1] = planck_map_kappa
+nmaps = len(maps)
 
 ix = len(des_maps_dg)
 for i, map_e1 in enumerate(des_maps_e1):
@@ -187,6 +188,37 @@ for i in range(len(maps)):
             w.write_to(fname)
 
         workspaces_fnames_ar.append(fname)
+
+##############################################################################
+# Generate covariance workspaces
+##############################################################################
+cl_indices = []
+nmaps = len(maps)
+for i in range(nmaps):
+    for j in range(i, nmaps):
+        cl_indices.append([i, j])
+
+cov_indices = []
+for i, clij in enumerate(cl_indices):
+    for j, clkl in enumerate(cl_indices[i:]):
+        cov_indices.append(cl_indices[i] + cl_indices[i + j])
+
+for indices in cov_indices:
+    i, j, k, l = indices
+    mask1 = masks[i]
+    mask2 = masks[j]
+    mask3 = masks[k]
+    mask4 = masks[l]
+    fname = os.path.join(output_folder, 'cw{}{}{}{}.dat'.format(mask1, mask2, mask3, mask4))
+    sys.stdout.write('cw{}{}{}{}.dat\n'.format(mask1, mask2, mask3, mask4))
+    if not os.path.isfile(fname):
+        cw = nmt.NmtCovarianceWorkspace()
+        f1 = fields[i]
+        f2 = fields[j]
+        f3 = fields[k]
+        f4 = fields[l]
+        cw.compute_coupling_coefficients(f1, f2, f3, f4)
+        cw.write_to(fname)
 
 ##############################################################################
 # Compute Cls
