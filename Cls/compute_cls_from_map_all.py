@@ -23,10 +23,30 @@ parser.add_option('--plot', dest='plot_stuff', default=False, action='store_true
 ##############################################################################
 ##############################################################################
 
-output_folder = '/mnt/bluewhale/gravityls_3/S8z/Cls/all_together_linear_binning'
+output_folder = '/mnt/bluewhale/gravityls_3/S8z/Cls/all_together'
 data_folder = '/mnt/bluewhale/damonge/S8z_data/derived_products'
-# nside = 4096
+nside = 4096
 
+##############################################################################
+############################## Set Binning ###################################
+##############################################################################
+# The ells_lim_bpw
+ells = np.arange(3 * nside)
+ells_lim_bpw= np.array([0, 30, 60, 90, 120, 150, 180, 210, 240, 272, 309, 351, 398, 452, 513, 582, 661, 750, 852, 967, 1098, 1247, 1416, 1608, 1826, 2073, 2354, 2673, 3035, 3446, 3914, 4444, 5047, 5731, 6508, 7390, 8392, 9529, 10821, 12288])
+bpws = np.zeros(ells.shape)
+weights = np.zeros(ells.shape)
+
+li = 0
+for i, lf in enumerate(ells_lim_bpw[1:]):
+    # lf += 1
+    bpws[li : lf] = i
+    weights[li : lf] += 1./weights[li : lf].size
+    li = lf
+
+b = nmt.NmtBin(nside, bpws=bpws, ells=ells, weights=weights)
+
+print(b.get_effective_ells())
+sys.exit()
 ##############################################################################
 ############################ DES Clustering ##################################
 ##############################################################################
@@ -145,10 +165,6 @@ for i, maski in enumerate(des_mask_gwl):
 
 spins = [0] * len(des_maps_dg) + [2] * 2 * len(des_maps_e1) + [0]
 
-#Set up binning scheme
-fsky = np.mean(des_mask)  # Use des_mask for binning as we had
-d_ell = int(1./fsky)
-b = nmt.NmtBin(des_nside,nlb=d_ell)
 
 ##############################################################################
 ############################# NaMaster stuff #################################
