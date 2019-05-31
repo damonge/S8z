@@ -46,7 +46,6 @@ for i, lf in enumerate(ells_lim_bpw[1:]):
 b = nmt.NmtBin(nside, bpws=bpws, ells=ells, weights=weights)
 
 print(b.get_effective_ells())
-sys.exit()
 ##############################################################################
 ############################ DES Clustering ##################################
 ##############################################################################
