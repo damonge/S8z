@@ -12,20 +12,16 @@ import healpy as hp
 
 ##############################################################################
 ##############################################################################
-output_folder = '/mnt/bluewhale/gravityls_3/S8z/Cls/all_together'
-des_th_cls_path = '/mnt/bluewhale/evam/S8z/'
-
-des_maps = des_bins = 5
-##############################################################################
-################ Read Th. cls ###############
-##############################################################################
+outdir = '/mnt/bluewhale/gravityls_3/S8z/Cls/all_together'
 
 ##############################################################################
-def load_thcls(th_outdir):
+################ Define functions to read Cls ###############
+##############################################################################
+def load_thcls(th_outdir, file_prefix, nmaps):
     cls_arr = []
-    for i in range(des_bins):
-        for j in range(i, des_bins):
-            fname = os.path.join(th_outdir, 'DES_Cls_lmax3xNside_{}_{}.txt'.format(i, j))
+    for i in range(nmaps):
+        for j in range(i, nmaps):
+            fname = os.path.join(th_outdir, file_prefix + '_{}_{}.txt'.format(i, j))
             if not os.path.isfile(fname): #spin0-spin0
                 raise ValueError('Missing workspace: ', fname)
 
@@ -34,31 +30,115 @@ def load_thcls(th_outdir):
     ell = np.loadtxt(fname, usecols=0)
 
     return ell, np.array(cls_arr)
+
+def load_thcls_gk(nmaps_g, nmaps_k):
+    th_outdir = '/mnt/bluewhale/evam/S8z/Clsgk/'
+    file_prefix = 'DES_Cls_gk_lmax3xNside'
+    cls_arr = []
+    for i in range(nmaps_g):
+        for j in range(nmaps_k):
+            fname = os.path.join(th_outdir, file_prefix + '_{}_{}.txt'.format(i, j))
+            if not os.path.isfile(fname): #spin0-spin0
+                raise ValueError('Missing workspace: ', fname)
+
+            cls_arr.append(np.loadtxt(fname, usecols=1))
+
+    ell = np.loadtxt(fname, usecols=0)
+
+    return ell, np.array(cls_arr)
+
+def load_thcls_Planck():
+    fdir = '/mnt/bluewhale/evam/S8z/ClsPlanck/'
+    cls_arr = []
+    for i in range(5):
+        fname = os.path.join(fdir, 'DESPlanck_Cls_gk_lmax3xNside_{}.txt'.format(i))
+        cls_arr.append(np.loadtxt(fname, usecols=1))
+    for i in range(4):
+        fname = os.path.join(fdir, 'DESPlanck_Cls_kk_lmax3xNside_{}.txt'.format(i))
+        cls_arr.append(np.loadtxt(fname, usecols=1))
+        cls_arr.append(cls_arr[-1] * 0)
+
+    fname = os.path.join(fdir, 'Planck_Cls_kk_lmax3xNside.txt'.format(i))
+    cls_arr.append(np.loadtxt(fname, usecols=1))
+    ell = np.loadtxt(fname, usecols=0)
+
+    return ell, np.array(cls_arr)
+
+def load_cls_all_matrix_th():
+    # All th_ell are the same
+    th_outdir = '/mnt/bluewhale/evam/S8z/Clsgg/'
+    th_ell, Clsgg_ar = load_thcls(th_outdir, 'DES_Cls_lmax3xNside', 5)
+
+    th_outdir = '/mnt/bluewhale/evam/S8z/Clskk/'
+    th_ell, Clskk_ar = load_thcls(th_outdir, 'DES_Cls_kk_lmax3xNside', 4)
+
+    th_outdir = '/mnt/bluewhale/evam/S8z/Clsgk/'
+    th_ell, Clsgk_ar = load_thcls_gk(5, 4)
+
+    th_outdir = '/mnt/bluewhale/evam/S8z/ClsPlanck/'
+    th_ell, ClsPlanck_ar = load_thcls_Planck()
+
+    # Checked that all EE's are the same as in the array.
+    Clskk_full_mat = np.zeros((8, 8, th_ell.shape[0]))
+    i, j = np.triu_indices(4)
+    Clskk_full_mat[::2, ::2][i, j] = Clskk_ar
+    Clskk_full_mat[::2, ::2][j, i] = Clskk_ar
+    i, j = np.triu_indices(8)
+    Clskk_ar_full = Clskk_full_mat[i, j]
+
+    th_cls_all = np.zeros((14, 14, th_ell.shape[0]))
+
+    i, j = np.triu_indices(5)
+    th_cls_all[:5, :5][i, j] = Clsgg_ar
+
+    i, j = np.triu_indices(8)
+    th_cls_all[5:-1, 5:-1][i, j] = Clskk_ar_full
+
+    th_cls_all[:, -1] = ClsPlanck_ar
+
+    for i in range(5):
+        th_cls_all[i, 5:-1:2] = Clsgk_ar[i * 4 : (i + 1) * 4]
+
+    i, j = np.triu_indices(14)
+    th_cls_all_ar = th_cls_all[i, j]
+    th_cls_all[j, i] = th_cls_all_ar
+
+    return th_ell, th_cls_all
+
 ##############################################################################
-
-th_ell, des_th_cls_arr = load_thcls(des_th_cls_path)
-
-des_th_cl00_matrix = np.empty((des_bins, des_bins, len(th_ell)),
-                              dtype=des_th_cls_arr[0].dtype)
-i, j = np.triu_indices(des_bins)
-des_th_cl00_matrix[i, j] = des_th_cls_arr
-des_th_cl00_matrix[j, i] = des_th_cls_arr
-
+################ Read Cls ###############
 ##############################################################################
-################# Add shot noise Cls to th's ones  #################
-##############################################################################
-fname = os.path.join(output_folder, "des_w_cl_shot_noise_ns4096.npz")
-if not os.path.isfile(fname):
-    raise ValueError('Missing shot noise: ', fname)
+############# Load theory cl matrix
 
-des_Nls_file = np.load(fname)
-des_Nls_ell = des_Nls_file['l']
-des_Nls_arr = des_Nls_file['cls']
+th_ell, th_cls_all = load_cls_all_matrix_th()
 
-for i, nls in enumerate(des_Nls_arr):
-    des_th_cl00_matrix[i, i] += interp1d(des_Nls_ell, nls, bounds_error=False,
-                                         fill_value=(nls[0], nls[-1]))(th_ell)
+############# Load obs. cl matrix
 
+lbpw_obs_cls_all = np.load(os.path.join(outdir, 'cl_all_with_noise.npz'))
+lbpw, obs_cls_all_wn = lbpw_obs_cls_all['l'], lbpw_obs_cls_all['cls']
+
+############### Load DES noises
+
+desgc_nls_arr = np.load(os.path.join(outdir, 'des_w_cl_shot_noise_ns4096.npz'))['cls']
+dessh_nls_arr = np.load(os.path.join(outdir, 'des_sh_metacal_rot0-10_noise_ns4096.npz'))['cls']
+
+############## Add noise
+for i, nls_i in enumerate(desgc_nls_arr):
+    th_cls_all[i, i] += interp1d(lbpw, nls_i, bounds_error=False,
+                                 fill_value=(nls_i[0], nls_i[-1]))(th_ell)
+
+for i, nls_i in enumerate(dessh_nls_arr):
+    ish = len(desgc_nls_arr) + 2 * i
+    th_cls_all[ish : ish + 2, ish : ish + 2] += interp1d(lbpw, nls_i, bounds_error=False,
+                                                     fill_value=(nls_i[:, :, 0], nls_i[:, :, -1]))(th_ell)
+############## Use observed Planck's Cls
+th_cls_all[:, -1] = interp1d(lbpw, obs_cls_all_wn[:, -1], bounds_error=False,
+                                 fill_value=(obs_cls_all_wn[:, -1, 0], obs_cls_all_wn[:, -1, -1]))(th_ell)
+th_cls_all[-1, :] = interp1d(lbpw, obs_cls_all_wn[-1, :], bounds_error=False,
+                             fill_value=(obs_cls_all_wn[-1, :, 0], obs_cls_all_wn[-1, :, -1]))(th_ell)
+
+import sys
+sys.exit()
 
 ##############################################################################
 ##############################################################################
@@ -78,7 +158,7 @@ def get_nelems_spin(spin):
 
 def get_workspace_from_spins_masks(spin1, spin2, mask1, mask2):
         ws = nmt.NmtWorkspace()
-        fname = os.path.join(output_folder, 'w{}{}_{}{}.dat'.format(spin1, spin2, mask1, mask2))
+        fname = os.path.join(outdir, 'w{}{}_{}{}.dat'.format(spin1, spin2, mask1, mask2))
         ws.read_from(fname)
         return ws
 
@@ -128,7 +208,7 @@ def compute_covariance_full(clTh, nbins, maps_bins, maps_spins, maps_masks):
 
         bin_a1, bin_a2, bin_b1, bin_b2 = cov_bins[i]
 
-        fname = os.path.join(output_folder, 'cov_c{}{}{}{}_{}{}{}{}.npz'.format(*cov_spins[i], *cov_masks[i]))
+        fname = os.path.join(outdir, 'cov_c{}{}{}{}_{}{}{}{}.npz'.format(*cov_spins[i], *cov_masks[i]))
         if os.path.isfile(fname):
             continue
 
@@ -145,10 +225,10 @@ def compute_covariance_full(clTh, nbins, maps_bins, maps_spins, maps_masks):
         wa = get_workspace_from_spins_masks(s_a1, s_a2, m_a1, m_a2)
         wb = get_workspace_from_spins_masks(s_b1, s_b2, m_b1, m_b2)
 
-        fname_cw = os.path.join(output_folder, 'cw{}{}{}{}.dat'.format(m_a1, m_a2, m_b1, m_b2))
+        fname_cw = os.path.join(outdir, 'cw{}{}{}{}.dat'.format(m_a1, m_a2, m_b1, m_b2))
         if fname_cw != fname_cw_old:
             cw = nmt.NmtCovarianceWorkspace()
-            cw.read_from(fname)
+            cw.read_from(fname_cw)
             fname_cw_old = fname_cw
 
         # cla1b1_label = np.concatenate(Cls[ibin_a1 : ibin_a1 + na1, ibin_b1 : ibin_b1 + nb1])
@@ -183,4 +263,4 @@ nmaps = 5 + 8 + 1
 maps_bins = [0, 1, 2, 3, 4] + [5, 5] + [6, 6] + [7, 7] + [8, 8] + [9]
 maps_masks = [0] * 5 + [1, 1] + [2, 2] + [3, 3] + [4, 4] + [5]
 maps_spins = [0] * 5 + [2, 2] * 4 + [0]
-compute_covariance_full(Clth, nbins, maps_bins, maps_spins, maps_masks)
+compute_covariance_full(th_cls_all, nbins, maps_bins, maps_spins, maps_masks)
