@@ -70,22 +70,25 @@ def des_sh_nls_rot_map(des_mask_gwl, des_opm_mean, des_data_folder_gwl, output_f
         ws.read_from(fname)
         print('Reading {}'.format(fname))
 
+        map_we1 = map_we1_orig * np.cos(rnumbers)
+        map_we2 = map_we2_orig * np.sin(rnumbers)
+
+        map_e1 = (map_we1/des_mask_gwl[ibin] - (map_we1.sum()/des_mask_gwl[ibin].sum())) / des_opm_mean[ibin]
+        map_e2 = (map_we2/des_mask_gwl[ibin] - (map_we2.sum()/des_mask_gwl[ibin].sum())) / des_opm_mean[ibin]
+        map_e1[np.isnan(map_e1)] = 0.
+        map_e2[np.isnan(map_e2)] = 0.
+
+        sq = map_e1
+        su = -map_e2
+
         for irot in range(Nrot):
-            rnumbers = np.random.uniform(0, 2*np.pi, size=map_we1_orig.size)
-            map_we1 = map_we1_orig * np.cos(rnumbers)
-            map_we2 = map_we2_orig * np.sin(rnumbers)
+            angles = 2 * np.pi * np.random.rand(n_pixels)
+            sq_b = sq * np.cos(2*angles) + su * np.sin(2*angles)
+            su_b = -sq * np.sin(2*angles) + su * np.cos(2*angles)
 
-            map_e1 = (map_we1/des_mask_gwl[ibin] - (map_we1.sum()/des_mask_gwl[ibin].sum())) / des_opm_mean[ibin]
-            map_e2 = (map_we2/des_mask_gwl[ibin] - (map_we2.sum()/des_mask_gwl[ibin].sum())) / des_opm_mean[ibin]
-            map_e1[np.isnan(map_e1)] = 0.
-            map_e2[np.isnan(map_e2)] = 0.
-
-            sq = map_e1
-            su = -map_e2
-            f = nmt.NmtField(des_mask_gwl[ibin], [sq, su])
+            f = nmt.NmtField(des_mask_gwl[ibin], [sq_b, su_b])
 
             print('Computing cls. ibin = {}, irot = {}'.format(ibin, irot))
-            print('Any is nan? {}'.format(np.isnan([sq, su]).any(axis=1)))
             cls = ws.decouple_cell(nmt.compute_coupled_cell(f, f)).reshape((2, 2, -1))
 
             rotated_cls[ibin] += cls
