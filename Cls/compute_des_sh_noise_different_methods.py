@@ -61,17 +61,14 @@ def des_sh_nls_rot_map(des_mask_gwl, des_opm_mean, des_data_folder_gwl, output_f
     rotated_cls = np.zeros((nbins, 2, 2, b.get_n_bands()))
     for ibin in range(nbins):
         fname = os.path.join(des_data_folder_gwl, 'map_metacal_bin{}_counts_e1_ns4096.fits'.format(i))
-        map_we1_orig = hp.read_map(fname)
+        map_we1 = hp.read_map(fname)
         fname = os.path.join(des_data_folder_gwl, 'map_metacal_bin{}_counts_e2_ns4096.fits'.format(i))
-        map_we2_orig = hp.read_map(fname)
+        map_we2 = hp.read_map(fname)
 
         ws = nmt.NmtWorkspace()
         fname = os.path.join(output_folder, 'w22_{}{}.dat'.format(1 + ibin, 1 + ibin))
         ws.read_from(fname)
         print('Reading {}'.format(fname))
-
-        map_we1 = map_we1_orig * np.cos(rnumbers)
-        map_we2 = map_we2_orig * np.sin(rnumbers)
 
         map_e1 = (map_we1/des_mask_gwl[ibin] - (map_we1.sum()/des_mask_gwl[ibin].sum())) / des_opm_mean[ibin]
         map_e2 = (map_we2/des_mask_gwl[ibin] - (map_we2.sum()/des_mask_gwl[ibin].sum())) / des_opm_mean[ibin]
