@@ -79,7 +79,7 @@ def des_sh_nls_rot_map(des_mask_gwl, des_opm_mean, des_data_folder_gwl, output_f
         su = -map_e2
 
         for irot in range(Nrot):
-            angles = 2 * np.pi * np.random.rand(n_pixels)
+            angles = 2 * np.pi * np.random.rand(sq.size)
             sq_b = sq * np.cos(2*angles) + su * np.sin(2*angles)
             su_b = -sq * np.sin(2*angles) + su * np.cos(2*angles)
 
