@@ -58,7 +58,7 @@ def load_thcls_Planck():
         cls_arr.append(np.loadtxt(fname, usecols=1))
         cls_arr.append(cls_arr[-1] * 0)
 
-    fname = os.path.join(fdir, 'Planck_Cls_kk_lmax3xNside.txt'.format(i))
+    fname = os.path.join(fdir, 'Planck_Cls_kk_lmax3xNside.txt')
     cls_arr.append(np.loadtxt(fname, usecols=1))
     ell = np.loadtxt(fname, usecols=0)
 
@@ -137,8 +137,6 @@ th_cls_all[:, -1] = interp1d(lbpw, obs_cls_all_wn[:, -1], bounds_error=False,
 th_cls_all[-1, :] = interp1d(lbpw, obs_cls_all_wn[-1, :], bounds_error=False,
                              fill_value=(obs_cls_all_wn[-1, :, 0], obs_cls_all_wn[-1, :, -1]))(th_ell)
 
-import sys
-sys.exit()
 
 ##############################################################################
 ##############################################################################
@@ -164,7 +162,7 @@ def get_workspace_from_spins_masks(spin1, spin2, mask1, mask2):
 
 def compute_covariance_full(clTh, nbins, maps_bins, maps_spins, maps_masks):
 
-    nmaps = clTh.shape[0]
+    nmaps = len(maps_bins)
     fname_cw_old = ''
 
     cl_indices = []
@@ -208,7 +206,7 @@ def compute_covariance_full(clTh, nbins, maps_bins, maps_spins, maps_masks):
 
         bin_a1, bin_a2, bin_b1, bin_b2 = cov_bins[i]
 
-        fname = os.path.join(outdir, 'cov_c{}{}{}{}_{}{}{}{}.npz'.format(*cov_spins[i], *cov_masks[i]))
+        fname = os.path.join(outdir, 'cov_s{}{}{}{}_b{}{}{}{}.npz'.format(*cov_spins[i], *cov_bins[i]))
         if os.path.isfile(fname):
             continue
 
@@ -225,7 +223,7 @@ def compute_covariance_full(clTh, nbins, maps_bins, maps_spins, maps_masks):
         wa = get_workspace_from_spins_masks(s_a1, s_a2, m_a1, m_a2)
         wb = get_workspace_from_spins_masks(s_b1, s_b2, m_b1, m_b2)
 
-        fname_cw = os.path.join(outdir, 'cw{}{}{}{}.dat'.format(m_a1, m_a2, m_b1, m_b2))
+        fname_cw = os.path.join(outdir, 'cw{}{}{}{}.dat'.format(*cov_masks[i]))
         if fname_cw != fname_cw_old:
             cw = nmt.NmtCovarianceWorkspace()
             cw.read_from(fname_cw)
@@ -241,7 +239,7 @@ def compute_covariance_full(clTh, nbins, maps_bins, maps_spins, maps_masks):
         # print(np.concatenate(cla2b1))
         # print(np.concatenate(cla2b2))
 
-        # print('Computing ', fname)
+        print('Computing {}'.format(fname))
         # print('spins: ', s_a1, s_a2, s_b1, s_b2)
         # print('cla1b1', (s_a1, s_b1), cla1b1.shape, ibin_a1, ibin_a1 + na1, ibin_b1, ibin_b1 + nb1, cla1b1_label)
         # print('cla1b2', (s_a1, s_b2), cla1b2.shape, ibin_a1, ibin_a1 + na1, ibin_b2, ibin_b2 + nb2, cla1b2_label)
