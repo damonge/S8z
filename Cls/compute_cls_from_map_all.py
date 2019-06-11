@@ -46,6 +46,8 @@ for i, lf in enumerate(ells_lim_bpw[1:]):
 b = nmt.NmtBin(nside, bpws=bpws, ells=ells, weights=weights)
 
 print(b.get_effective_ells())
+fname = os.path.join(output_folder, 'l_bpw.txt')
+np.savetxt(fname, b.get_effective_ells())
 ##############################################################################
 ############################ DES Clustering ##################################
 ##############################################################################
