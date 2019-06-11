@@ -7,6 +7,7 @@ import sys
 import pymaster as nmt
 import numpy as np
 import healpy as hp
+import common as co
 
 # pylint: disable=C0103,C0111
 
@@ -160,16 +161,6 @@ def get_workspace_from_spins_masks(spin1, spin2, mask1, mask2):
         ws.read_from(fname)
         return ws
 
-def get_tracer_name(ibin):
-    if ibin in np.arange(5):
-        name = 'DESgc{}'.format(ibin)
-    elif ibin in np.arange(5, 9):
-        name = 'DESwl{}'.format(ibin-5)
-    elif ibin == 9:
-        name = 'PLAcv'
-
-    return name
-
 def compute_covariance_full(clTh, nbpw, nbins, maps_bins, maps_spins, maps_masks):
 
     nmaps = len(maps_bins)
@@ -262,7 +253,7 @@ def compute_covariance_full(clTh, nbpw, nbins, maps_bins, maps_spins, maps_masks
 
         np.savez_compressed(fname, cov)
 
-        tracer_names = [get_tracer_name(ibin) for ibin in cov_bins[i]]
+        tracer_names = [co.get_tracer_name(ibin) for ibin in cov_bins[i]]
         fname_new = os.path.join(outdir, 'cov_{}_{}_{}_{}.npz'.format(*tracer_names))
         #  TT -> 0; TE -> 0;  EE -> 0
         np.savez_compressed(fname_new, cov.reshape((nbpw, na1 * na2, nbpw, nb1 * nb2))[:, 0, :, 0])

@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 import healpy as hp
 import os
 import sys
+import common as co
 
 # pylint: disable=C0103
 
@@ -382,6 +383,12 @@ else:
 
 np.savez(os.path.join(output_folder, "cl_all_no_noise"),
          l=b.get_effective_ells(), cls=cl_matrix)
+
+# Split cls in files
+bins = [0, 1, 2, 3, 4] + [5, 5] + [6, 6] + [7, 7] + [8, 8] + [9]
+index_B = [6, 8, 10, 12]
+co.split_cls_all_array(cl_matrix, b.get_effective_ells(), bins, index_B, output_folder)
+
 
 # ######################### Test ############################
 # print(np.all(cl00_matrix[1,3] == cl00_matrix[3, 1]))
