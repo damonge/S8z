@@ -16,9 +16,9 @@ parser.add_option('--plot', dest='plot_stuff', default=False, action='store_true
 
 (o, args) = parser.parse_args()
 
-output_folder = '/mnt/bluewhale/gravityls_3/S8z/Cls/'
+output_folder = '/mnt/extraspace/gravityls_3/S8z/Cls/'
 
-data_folder = '/mnt/bluewhale/damonge/S8z_data/derived_products'
+data_folder = '/mnt/extraspace/damonge/S8z_data/derived_products'
 des_folder_gcl = 'des_clustering'
 des_mask = 'mask_ns4096.fits'
 des_nside = 4096

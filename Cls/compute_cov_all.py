@@ -13,7 +13,7 @@ import common as co
 
 ##############################################################################
 ##############################################################################
-outdir = '/mnt/bluewhale/gravityls_3/S8z/Cls/all_together'
+outdir = '/mnt/extraspace/gravityls_3/S8z/Cls/all_together'
 
 ##############################################################################
 ################ Define functions to read Cls ###############
@@ -33,7 +33,7 @@ def load_thcls(th_outdir, file_prefix, nmaps):
     return ell, np.array(cls_arr)
 
 def load_thcls_gk(nmaps_g, nmaps_k):
-    th_outdir = '/mnt/bluewhale/evam/S8z/Clsgk/'
+    th_outdir = '/mnt/extraspace/evam/S8z/Clsgk/'
     file_prefix = 'DES_Cls_gk_lmax3xNside'
     cls_arr = []
     for i in range(nmaps_g):
@@ -49,7 +49,7 @@ def load_thcls_gk(nmaps_g, nmaps_k):
     return ell, np.array(cls_arr)
 
 def load_thcls_Planck():
-    fdir = '/mnt/bluewhale/evam/S8z/ClsPlanck/'
+    fdir = '/mnt/extraspace/evam/S8z/ClsPlanck/'
     cls_arr = []
     for i in range(5):
         fname = os.path.join(fdir, 'DESPlanck_Cls_gk_lmax3xNside_{}.txt'.format(i))
@@ -67,16 +67,16 @@ def load_thcls_Planck():
 
 def load_cls_all_matrix_th():
     # All th_ell are the same
-    th_outdir = '/mnt/bluewhale/evam/S8z/Clsgg/'
+    th_outdir = '/mnt/extraspace/evam/S8z/Clsgg/'
     th_ell, Clsgg_ar = load_thcls(th_outdir, 'DES_Cls_lmax3xNside', 5)
 
-    th_outdir = '/mnt/bluewhale/evam/S8z/Clskk/'
+    th_outdir = '/mnt/extraspace/evam/S8z/Clskk/'
     th_ell, Clskk_ar = load_thcls(th_outdir, 'DES_Cls_kk_lmax3xNside', 4)
 
-    th_outdir = '/mnt/bluewhale/evam/S8z/Clsgk/'
+    th_outdir = '/mnt/extraspace/evam/S8z/Clsgk/'
     th_ell, Clsgk_ar = load_thcls_gk(5, 4)
 
-    th_outdir = '/mnt/bluewhale/evam/S8z/ClsPlanck/'
+    th_outdir = '/mnt/extraspace/evam/S8z/ClsPlanck/'
     th_ell, ClsPlanck_ar = load_thcls_Planck()
 
     # Checked that all EE's are the same as in the array.

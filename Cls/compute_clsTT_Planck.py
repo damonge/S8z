@@ -7,8 +7,8 @@ import healpy as hp
 import os
 
 
-data_folder = '/mnt/bluewhale/damonge/S8z_data/derived_products'
-output_folder = '/mnt/bluewhale/gravityls_3/S8z/Cls/Planck'
+data_folder = '/mnt/extraspace/damonge/S8z_data/derived_products'
+output_folder = '/mnt/extraspace/gravityls_3/S8z/Cls/Planck'
 ####
 des_folder_gcl = 'des_clustering'
 des_mask = 'mask_ns4096.fits'

@@ -99,8 +99,8 @@ def des_sh_nls_rot_map(des_mask_gwl, des_opm_mean, des_data_folder_gwl, output_f
 
 
 if __name__ == '__main__':
-    output_folder = '/mnt/bluewhale/gravityls_3/S8z/Cls/all_together_linear_binning'
-    data_folder = '/mnt/bluewhale/damonge/S8z_data/derived_products'
+    output_folder = '/mnt/extraspace/gravityls_3/S8z/Cls/all_together_linear_binning'
+    data_folder = '/mnt/extraspace/damonge/S8z_data/derived_products'
     nside = 4096
 
     # ######

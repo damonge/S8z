@@ -24,8 +24,8 @@ parser.add_option('--plot', dest='plot_stuff', default=False, action='store_true
 ##############################################################################
 ##############################################################################
 
-output_folder = '/mnt/bluewhale/gravityls_3/S8z/Cls/all_together'
-data_folder = '/mnt/bluewhale/damonge/S8z_data/derived_products'
+output_folder = '/mnt/extraspace/gravityls_3/S8z/Cls/all_together'
+data_folder = '/mnt/extraspace/damonge/S8z_data/derived_products'
 nside = 4096
 
 ##############################################################################

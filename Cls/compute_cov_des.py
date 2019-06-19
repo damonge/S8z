@@ -12,9 +12,9 @@ import healpy as hp
 
 ##############################################################################
 ##############################################################################
-output_folder = '/mnt/bluewhale/gravityls_3/S8z/Cls'
+output_folder = '/mnt/extraspace/gravityls_3/S8z/Cls'
 
-data_folder = '/mnt/bluewhale/damonge/S8z_data/derived_products'
+data_folder = '/mnt/extraspace/damonge/S8z_data/derived_products'
 des_folder_gcl = 'des_clustering'
 des_mask = 'mask_ns4096.fits'
 des_nside = 4096
@@ -23,7 +23,7 @@ des_bins = 5
 des_data_folder = os.path.join(data_folder, des_folder_gcl)
 
 des_mask_path = os.path.join(des_data_folder, des_mask)
-des_th_cls_path = '/mnt/bluewhale/evam/S8z/'
+des_th_cls_path = '/mnt/extraspace/evam/S8z/'
 
 ##############################################################################
 ########### Read mask ###########

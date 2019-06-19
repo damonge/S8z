@@ -27,7 +27,7 @@ def split_cls_all_array(cls_all, lbpw, bins, index_B, outdir):
             np.savez_compressed(fname, ells=lbpw, cls=cls_all[i, j])
 
 if __name__ == '__main__':
-    output_folder = '/mnt/bluewhale/gravityls_3/S8z/Cls/all_together'
+    output_folder = '/mnt/extraspace/gravityls_3/S8z/Cls/all_together'
     fname = os.path.join(output_folder,  "cl_all_no_noise.npz")
     cls_all_file = np.load(fname)
     lbpw, cls_all = cls_all_file['l'], cls_all_file['cls']
