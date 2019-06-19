@@ -139,6 +139,7 @@ th_cls_all[-1, :] = interp1d(lbpw, obs_cls_all_wn[-1, :], bounds_error=False,
                              fill_value=(obs_cls_all_wn[-1, :, 0], obs_cls_all_wn[-1, :, -1]))(th_ell)
 
 
+np.savez_compressed(outdir + '/th_cls_all_with_noise.npz', ell=th_ell, cls=th_cls_all)
 ##############################################################################
 ##############################################################################
 ####################### NaMaster-thing part ##################################
