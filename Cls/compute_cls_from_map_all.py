@@ -291,7 +291,7 @@ else:
             #     plt.show()
             #     plt.close()
 
-            cl_matrix[index1 : index1 + dof1, index2 : index2 + dof2] = cls
+            cl_matrix[index1 : index1 + dof1, index2 : index2 + dof2] = cls * (-1)**(dof1 + dof2 + 2)  # To correct the minus sign in sh fields
 
              # from matplotlib import pyplot as plt
              # for cli_true, cli in zip(cls_true,
