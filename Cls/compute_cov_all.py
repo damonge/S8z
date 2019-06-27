@@ -132,11 +132,9 @@ for i, nls_i in enumerate(dessh_nls_arr):
     ish = len(desgc_nls_arr) + 2 * i
     th_cls_all[ish : ish + 2, ish : ish + 2] += interp1d(lbpw, nls_i, bounds_error=False,
                                                      fill_value=(nls_i[:, :, 0], nls_i[:, :, -1]))(th_ell)
-############## Use observed Planck's Cls
-th_cls_all[:, -1] = interp1d(lbpw, obs_cls_all_wn[:, -1], bounds_error=False,
-                                 fill_value=(obs_cls_all_wn[:, -1, 0], obs_cls_all_wn[:, -1, -1]))(th_ell)
-th_cls_all[-1, :] = interp1d(lbpw, obs_cls_all_wn[-1, :], bounds_error=False,
-                             fill_value=(obs_cls_all_wn[-1, :, 0], obs_cls_all_wn[-1, :, -1]))(th_ell)
+############## Use observed Planck's Cls for auto-correlation
+th_cls_all[-1, -1] = interp1d(lbpw, obs_cls_all_wn[-1, -1], bounds_error=False,
+                                 fill_value=(obs_cls_all_wn[-1, -1, 0], obs_cls_all_wn[-1, -1, -1]))(th_ell)
 
 
 np.savez_compressed(outdir + '/th_cls_all_with_noise.npz', ell=th_ell, cls=th_cls_all)
