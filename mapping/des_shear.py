@@ -21,7 +21,7 @@ else:
 
 # Angular resolution
 # Root data directory
-predir_in = "/mnt/bluewhale/damonge/S8z_data/"
+predir_in = "/mnt/extraspace/damonge/S8z_data/"
 if use_im3shape:
     # IM3shape shape catalog
     fname_cat = "DES_data/shear_catalog/y1a1-im3shape_v5_unblind_v2_matched_v4.fits"
@@ -41,7 +41,7 @@ fname_binning = "DES_data/shear_catalog/y1_source_redshift_binning_v1.fits"
 # N(z) file
 fname_bins = "DES_data/shear_catalog/y1_redshift_distributions_v1.fits"
 # Output prefix
-predir_out = "/mnt/bluewhale/damonge/S8z_data/derived_products/des_shear/"
+predir_out = "/mnt/extraspace/damonge/S8z_data/derived_products/des_shear/"
 os.system("mkdir -p " + predir_out)
 # Redshift bins
 nbins = 4

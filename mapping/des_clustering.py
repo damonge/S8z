@@ -11,7 +11,7 @@ if len(sys.argv)<2:
 # Angular resolution
 nside = int(sys.argv[1])
 # Root data directory
-predir_in = "/mnt/bluewhale/damonge/S8z_data/"
+predir_in = "/mnt/extraspace/damonge/S8z_data/"
 # Catalog file
 fname_cat = "DES_data/redmagic_catalog/DES_Y1A1_3x2pt_redMaGiC_zerr_CATALOG.fits"
 # Mask file
@@ -28,7 +28,7 @@ zbins = [[0.15, 0.30],
          [0.75, 0.90]]
 nbins = len(zbins)
 # Output prefix
-predir_out = "/mnt/bluewhale/damonge/S8z_data/derived_products/des_clustering/"
+predir_out = "/mnt/extraspace/damonge/S8z_data/derived_products/des_clustering/"
 os.system("mkdir -p " + predir_out)
 
 # Extract redshift distributions
