@@ -24,9 +24,14 @@ parser.add_option('--plot', dest='plot_stuff', default=False, action='store_true
 ##############################################################################
 ##############################################################################
 
-output_folder = '/mnt/extraspace/gravityls_3/S8z/Cls/all_together'
 data_folder = '/mnt/extraspace/damonge/S8z_data/derived_products'
 nside = 4096
+
+# Output folder
+if nside == 4096:
+    output_folder = '/mnt/extraspace/gravityls_3/S8z/Cls/all_together'
+else:
+    output_folder = '/mnt/extraspace/gravityls_3/S8z/Cls/all_together_{}'.format(nside)
 
 ##############################################################################
 ############################## Set Binning ###################################
@@ -54,8 +59,8 @@ np.savetxt(fname, b.get_effective_ells())
 ##############################################################################
 
 des_folder_gcl = 'des_clustering'
-des_mask = 'mask_ns4096.fits'
-des_nside = 4096
+# des_nside = 4096
+des_mask = 'mask_ns{}.fits'.format(nside)
 
 des_data_folder = os.path.join(data_folder, des_folder_gcl)
 
@@ -68,7 +73,7 @@ des_mask = hp.read_map(des_mask_path, verbose=False)
 nmaps = 5
 des_maps = []
 for i in range(nmaps):
-    map_file = os.path.join(des_data_folder, 'map_counts_w_bin{}_ns4096.fits'.format(i))
+    map_file = os.path.join(des_data_folder, 'map_counts_w_bin{}_ns{}.fits'.format(i, nside))
     des_maps.append(hp.read_map(map_file))
 des_maps = np.array(des_maps)
 
@@ -97,13 +102,13 @@ des_maps_we1 = []
 des_maps_we2 = []
 des_maps_wopm = []
 for i in range(4):
-    fname = os.path.join(des_data_folder_gwl, 'map_metacal_bin{}_counts_w_ns4096.fits'.format(i))
+    fname = os.path.join(des_data_folder_gwl, 'map_metacal_bin{}_counts_w_ns{}.fits'.format(i, des_nside))
     des_mask_gwl.append(hp.read_map(fname))
-    fname = os.path.join(des_data_folder_gwl, 'map_metacal_bin{}_counts_e1_ns4096.fits'.format(i))
+    fname = os.path.join(des_data_folder_gwl, 'map_metacal_bin{}_counts_e1_ns{}.fits'.format(i, des_nside))
     des_maps_we1.append(hp.read_map(fname))
-    fname = os.path.join(des_data_folder_gwl, 'map_metacal_bin{}_counts_e2_ns4096.fits'.format(i))
+    fname = os.path.join(des_data_folder_gwl, 'map_metacal_bin{}_counts_e2_ns{}.fits'.format(i, des_nside))
     des_maps_we2.append(hp.read_map(fname))
-    fname = os.path.join(des_data_folder_gwl, 'map_metacal_bin{}_counts_opm_ns4096.fits'.format(i))
+    fname = os.path.join(des_data_folder_gwl, 'map_metacal_bin{}_counts_opm_ns{}.fits'.format(i, des_nside))
     des_maps_wopm.append(hp.read_map(fname))
 
 des_mask_gwl = np.array(des_mask_gwl)
@@ -134,9 +139,9 @@ des_maps_e2[np.isnan(des_maps_e2)] = 0.
 
 planck_folder = 'planck_lensing'
 planck_data_folder = os.path.join(data_folder, planck_folder)
-fname = os.path.join(planck_data_folder, 'mask_ns4096.fits')
+fname = os.path.join(planck_data_folder, 'mask_ns{}.fits'.format(nside))
 planck_mask = hp.read_map(fname)
-fname = os.path.join(planck_data_folder, 'map_kappa_ns4096.fits')
+fname = os.path.join(planck_data_folder, 'map_kappa_ns{}.fits'.format(nside))
 planck_map_kappa = hp.read_map(fname)
 
 ##############################################################################
@@ -316,7 +321,7 @@ else:
 # ##############################################################################
 
 # Compute DES galaxy clustering noise
-des_gc_noise_file = os.path.join(output_folder, "des_w_cl_shot_noise_ns4096.npz")
+des_gc_noise_file = os.path.join(output_folder, "des_w_cl_shot_noise_ns{}.npz".format(nside))
 if os.path.isfile(des_gc_noise_file):
     N_bpw = np.load(des_gc_noise_file)['cls']
     for i, N_bpwi in enumerate(N_bpw):
@@ -340,7 +345,7 @@ else:
 
 # Compute DES shear noise
 
-des_wl_noise_file = os.path.join(output_folder, "des_sh_metacal_rot0-10_noise_ns4096.npz")
+des_wl_noise_file = os.path.join(output_folder, "des_sh_metacal_rot0-10_noise_ns{}.npz".format(nside))
 if os.path.isfile(des_wl_noise_file):
     N_wl = np.load(des_wl_noise_file)['cls']
     for ibin, N_wli in enumerate(N_wl):
@@ -355,8 +360,8 @@ else:
         ws.read_from(fname)
 
         for irot in range(10):
-            map_file_e1 = os.path.join(des_data_folder_gwl, 'map_metacal_bin{}_rot{}_counts_e1_ns4096.fits'.format(ibin, irot))
-            map_file_e2 = os.path.join(des_data_folder_gwl, 'map_metacal_bin{}_rot{}_counts_e2_ns4096.fits'.format(ibin, irot))
+            map_file_e1 = os.path.join(des_data_folder_gwl, 'map_metacal_bin{}_rot{}_counts_e1_ns{}.fits'.format(ibin, irot, nside))
+            map_file_e2 = os.path.join(des_data_folder_gwl, 'map_metacal_bin{}_rot{}_counts_e2_ns{}.fits'.format(ibin, irot, nside))
 
             map_we1 = hp.read_map(map_file_e1)
             map_we2 = hp.read_map(map_file_e2)
