@@ -104,13 +104,13 @@ des_maps_we1 = []
 des_maps_we2 = []
 des_maps_wopm = []
 for i in range(4):
-    fname = os.path.join(des_data_folder_gwl, 'map_metacal_bin{}_counts_w_ns{}.fits'.format(i, des_nside))
+    fname = os.path.join(des_data_folder_gwl, 'map_metacal_bin{}_counts_w_ns{}.fits'.format(i, nside))
     des_mask_gwl.append(hp.read_map(fname))
-    fname = os.path.join(des_data_folder_gwl, 'map_metacal_bin{}_counts_e1_ns{}.fits'.format(i, des_nside))
+    fname = os.path.join(des_data_folder_gwl, 'map_metacal_bin{}_counts_e1_ns{}.fits'.format(i, nside))
     des_maps_we1.append(hp.read_map(fname))
-    fname = os.path.join(des_data_folder_gwl, 'map_metacal_bin{}_counts_e2_ns{}.fits'.format(i, des_nside))
+    fname = os.path.join(des_data_folder_gwl, 'map_metacal_bin{}_counts_e2_ns{}.fits'.format(i, nside))
     des_maps_we2.append(hp.read_map(fname))
-    fname = os.path.join(des_data_folder_gwl, 'map_metacal_bin{}_counts_opm_ns{}.fits'.format(i, des_nside))
+    fname = os.path.join(des_data_folder_gwl, 'map_metacal_bin{}_counts_opm_ns{}.fits'.format(i, nside))
     des_maps_wopm.append(hp.read_map(fname))
 
 des_mask_gwl = np.array(des_mask_gwl)
@@ -329,15 +329,15 @@ if os.path.isfile(des_gc_noise_file):
     for i, N_bpwi in enumerate(N_bpw):
         cl_matrix[i, i] -= N_bpwi
 else:
-    des_N_mean_srad = des_N_mean / (4 * np.pi) * hp.nside2npix(des_nside)
-    N_ell = des_mask.sum() / hp.nside2npix(des_nside) / des_N_mean_srad
+    des_N_mean_srad = des_N_mean / (4 * np.pi) * hp.nside2npix(nside)
+    N_ell = des_mask.sum() / hp.nside2npix(nside) / des_N_mean_srad
 
     N_bpw = []
     ws = nmt.NmtWorkspace()
     fname = os.path.join(output_folder, 'w{}{}_{}{}.dat'.format(0, 0, 0, 0))
     ws.read_from(fname)
     for i, N_ell_mapi in enumerate(N_ell):
-        N_bpw.append(ws.decouple_cell([N_ell_mapi * np.ones(3 * des_nside)])[0])
+        N_bpw.append(ws.decouple_cell([N_ell_mapi * np.ones(3 * nside)])[0])
         cl_matrix[i, i] -= N_bpw[-1]
 
     N_bpw = np.array(N_bpw)
