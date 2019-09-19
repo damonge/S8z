@@ -16,8 +16,11 @@ output_folder = '/mnt/extraspace/gravityls_3/S8z/Cls'
 
 data_folder = '/mnt/extraspace/damonge/S8z_data/derived_products'
 des_folder_gcl = 'des_clustering'
-des_mask = 'mask_ns4096.fits'
 des_nside = 4096
+if des_nside != 4096:
+    des_folder_gcl += '_{}'.format(des_nside)
+
+des_mask = 'mask_ns{}.fits'.format(des_nside)
 des_bins = 5
 
 des_data_folder = os.path.join(data_folder, des_folder_gcl)
@@ -34,7 +37,7 @@ des_mask = hp.read_map(des_mask_path, verbose=False)
 ########### Read map ###########
 ##############################################################################
 # Read one map (gg) (as they all share the same mask)
-map_file = os.path.join(des_data_folder, 'map_counts_w_bin0_ns4096.fits')  # Same mask, just one field needed
+map_file = os.path.join(des_data_folder, 'map_counts_w_bin0_ns{}.fits'.format(des_nside))  # Same mask, just one field needed
 des_mapi = hp.read_map(map_file)
 
 des_N_mean = des_mapi.sum() / des_mask.sum()
@@ -79,7 +82,7 @@ des_th_cl00_matrix[j, i] = des_th_cls_arr
 ##############################################################################
 ################# Add shot noise Cls to th's ones  #################
 ##############################################################################
-fname = os.path.join(output_folder, "des_w_cl_shot_noise_ns4096.npz")
+fname = os.path.join(output_folder, "des_w_cl_shot_noise_ns{}.npz".format(des_nside))
 if not os.path.isfile(fname):
     raise ValueError('Missing shot noise: ', fname)
 
@@ -104,7 +107,7 @@ f0 = des_f0
 ##############################################################################
 ###############  Load already computed workspace   ###############
 ##############################################################################
-fname = os.path.join(output_folder, 'des_w00_ns4096.dat')
+fname = os.path.join(output_folder, 'des_w00_ns{}.dat'.format(des_nside))
 w00 = nmt.NmtWorkspace()
 if not os.path.isfile(fname): #spin0-spin0
     w00.compute_coupling_matrix(f0, f0, b)  # raise ValueError('Missing workspace: ', fname)
@@ -115,7 +118,7 @@ else:
 ##############################################################################
 ################### Compute covariance coupling coefficients #################
 ##############################################################################
-fname = os.path.join(output_folder, 'des_cw_ns4096.npz')
+fname = os.path.join(output_folder, 'des_cw_ns{}.npz'.format(des_nside))
 cw = nmt.NmtCovarianceWorkspace()
 if not os.path.isfile(fname):
     cw.compute_coupling_coefficients(f0, f0)

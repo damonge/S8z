@@ -13,7 +13,10 @@ import common as co
 
 ##############################################################################
 ##############################################################################
+nside = 4096
 outdir = '/mnt/extraspace/gravityls_3/S8z/Cls/all_together'
+if nside != 4096:
+    outdir += '_{}'.format(nside)
 
 ##############################################################################
 ################ Define functions to read Cls ###############
@@ -120,8 +123,8 @@ lbpw, obs_cls_all_wn = lbpw_obs_cls_all['l'], lbpw_obs_cls_all['cls']
 
 ############### Load DES noises
 
-desgc_nls_arr = np.load(os.path.join(outdir, 'des_w_cl_shot_noise_ns4096.npz'))['cls']
-dessh_nls_arr = np.load(os.path.join(outdir, 'des_sh_metacal_rot0-10_noise_ns4096.npz'))['cls']
+desgc_nls_arr = np.load(os.path.join(outdir, 'des_w_cl_shot_noise_ns{}.npz'.format(nside)))['cls']
+dessh_nls_arr = np.load(os.path.join(outdir, 'des_sh_metacal_rot0-10_noise_ns{}.npz'.format(nside)))['cls']
 
 ############## Add noise
 for i, nls_i in enumerate(desgc_nls_arr):

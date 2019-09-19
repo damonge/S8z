@@ -19,9 +19,12 @@ parser.add_option('--plot', dest='plot_stuff', default=False, action='store_true
 output_folder = '/mnt/extraspace/gravityls_3/S8z/Cls/'
 
 data_folder = '/mnt/extraspace/damonge/S8z_data/derived_products'
-des_folder_gcl = 'des_clustering'
-des_mask = 'mask_ns4096.fits'
 des_nside = 4096
+des_mask = 'mask_ns{}.fits'.format(des_nside)
+if des_nside == 4096:
+    des_folder_gcl = 'des_clustering'
+else:
+    des_folder_gcl = 'des_clustering_{}'.format(des_nside)
 
 des_data_folder = os.path.join(data_folder, des_folder_gcl)
 
@@ -34,7 +37,7 @@ des_mask = hp.read_map(des_mask_path, verbose=False)
 nmaps = 5
 des_maps = []
 for i in range(nmaps):
-    map_file = os.path.join(des_data_folder, 'map_counts_w_bin{}_ns4096.fits'.format(i))
+    map_file = os.path.join(des_data_folder, 'map_counts_w_bin{}_ns{}.fits'.format(i, des_nside))
     des_maps.append(hp.read_map(map_file))
 des_maps = np.array(des_maps)
 
@@ -84,7 +87,7 @@ des_fields = get_fields(des_maps_dg)
 #Compute mode-coupling matrix
 #Use initial fields to generate coupling matrix
 w00=nmt.NmtWorkspace();
-fname = os.path.join(output_folder, 'des_w00_ns4096.dat')
+fname = os.path.join(output_folder, 'des_w00_ns{}.dat'.format(des_nside))
 if not os.path.isfile(fname): #spin0-spin0
     print("Computing 00")
     f0 = des_fields[0]  # All of them have same mask, so just need one w00
@@ -118,9 +121,9 @@ for i, N_ell_mapi in enumerate(N_ell):
 
 N_bpw = np.array(N_bpw)
 
-np.savez(os.path.join(output_folder, "des_w_cl_ns4096"),
+np.savez(os.path.join(output_folder, "des_w_cl_ns{}".format(des_nside)),
          l=b.get_effective_ells(), cls=cl00_matrix)
-np.savez(os.path.join(output_folder, "des_w_cl_shot_noise_ns4096"),
+np.savez(os.path.join(output_folder, "des_w_cl_shot_noise_ns{}".format(des_nside)),
          l=b.get_effective_ells(), cls=N_bpw)
 
 

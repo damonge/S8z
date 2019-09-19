@@ -11,8 +11,12 @@ data_folder = '/mnt/extraspace/damonge/S8z_data/derived_products'
 output_folder = '/mnt/extraspace/gravityls_3/S8z/Cls/Planck'
 ####
 des_folder_gcl = 'des_clustering'
-des_mask = 'mask_ns4096.fits'
 des_nside = 4096
+if des_nside != 4096:
+    des_folder_gcl += '_{}'.format(des_nside)
+    output_folder += '_{}'.format(des_nside)
+
+des_mask = 'mask_ns{}.fits'.format(des_nside)
 des_data_folder = os.path.join(data_folder, des_folder_gcl)
 des_mask_path = os.path.join(des_data_folder, des_mask)
 
@@ -26,9 +30,9 @@ b = nmt.NmtBin(des_nside,nlb=d_ell)
 ####
 planck_folder = 'planck_lensing'
 planck_data_folder = os.path.join(data_folder, planck_folder)
-fname = os.path.join(planck_data_folder, 'mask_ns4096.fits')
+fname = os.path.join(planck_data_folder, 'mask_ns{}.fits'.format(nside))
 planck_mask = hp.read_map(fname)
-fname = os.path.join(planck_data_folder, 'map_kappa_ns4096.fits')
+fname = os.path.join(planck_data_folder, 'map_kappa_ns{}.fits'.format(nside))
 planck_map_kappa = hp.read_map(fname)
 ####
 f0 = nmt.NmtField(planck_mask, [planck_map_kappa])

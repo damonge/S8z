@@ -25,8 +25,8 @@ parser.add_option('--plot', dest='plot_stuff', default=False, action='store_true
 ##############################################################################
 
 data_folder = '/mnt/extraspace/damonge/S8z_data/derived_products'
-nside = 4096
-# nside = 2048
+# nside = 4096
+nside = 2048
 
 # Output folder
 if nside == 4096:
