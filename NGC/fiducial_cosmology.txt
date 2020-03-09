@@ -1,0 +1,5 @@
+Cosmological parameter:
+  - Omega_b=0.0479, h=0.685, n_s=0.973, sigma8=0.821, Omega_m=0.260
+
+Linear galaxy biases:
+  - b1=1.41, b2=1.60, b3=1.60, b4=1.91, b5=1.96
