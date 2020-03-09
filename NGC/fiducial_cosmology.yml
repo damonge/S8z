@@ -1,0 +1,7 @@
+cosmo_params:
+    Omega_b: 0.0479
+    h: 0.685
+    n_s: 0.973
+    sigma8: 0.821
+    Omega_m: 0.260
+
