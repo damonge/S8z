@@ -1,5 +1,6 @@
 # Tracers
 # 'gc' for galaxies, 'wl' for weak lensing, 'cv' for convergence
+# biases from Table II of DES 5x2pt paper
 maps:
 
     - name: 'DESgc0'

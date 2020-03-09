@@ -1,4 +1,5 @@
 cosmo_params:
+    # Omega_m, sigma8 from Section V.C of DES 5x2pt paper
     Omega_b: 0.0479
     h: 0.685
     n_s: 0.973
