@@ -106,6 +106,52 @@ def compute_cls(cosmo, tracers_info, ells, outdir):
         cls_ar[i] = cls
     return cls_ar
 
+def get_ell_from_k(cosmo, k, a):
+    return k * ccl.comoving_radial_distance(cosmo, a)
+
+def estimate_ell_cuts_shear(ell, cls_bcm, cls_nob, maxreldev):
+    print('Finding shear ell_cut with rdev = baryons / nobaryons - 1 = {}'.format(maxreldev))
+    rdev = np.abs(cls_bcm / cls_nob - 1)
+    ell_cuts_index = np.nanargmax(rdev > maxreldev, axis=-1)
+
+    return ell[ell_cuts_index]
+
+def estimate_ell_cuts_clustering(cosmo, kmax, z):
+    # z can be a float or an array
+    print('Finding clustering ell_cut with kmax = {} at z = {}'.format(kmax, z))
+    return get_ell_from_k(cosmo, kmax, 1/(1+z))
+
+def estimate_ell_cuts(ells, cls_bcm, cls_nob, cosmo, tracers_info,
+                      files_root, kmax=0.1, maxreldev=0.02):
+    h = cosmo.cosmo.params.h  # k in units of Mpc^-1 / h
+
+    zbin = []
+    for tr in tracers_info['maps']:
+        if tr['type'] != 'gc':
+            continue
+        fname = os.path.join(files_root, tr['dndz_file'])
+        z, pz = np.loadtxt(fname, usecols=(1,3), unpack=True)
+        zbin.append(np.sum(z * pz) / np.sum(pz))
+
+    ell_cuts = np.zeros(len(tracers_info['data_vectors']))
+    for i, tr in enumerate(tracers_info['data_vectors']):
+        tr1, tr2 = tr['tracers']
+        if ('gc' in tr1) or ('gc' in tr2):
+            if 'gc' in tr1:
+                gci = int(tr1[-1])
+            else:
+                gci = int(tr2[-1])
+            ell_cuts[i] = estimate_ell_cuts_clustering(cosmo, kmax/h, zbin[gci])
+        elif ('wl' in tr1) or ('wl' in tr2):
+            ell_cuts[i] = estimate_ell_cuts_shear(ells, cls_bcm[i], cls_nob[i],
+                                                  maxreldev)
+        else:
+            raise ValueError('Tracers in data_vectors not recognized! [{}, {}]'.format(tr1, tr2))
+
+    return ell_cuts
+
+
+
 #############################################################################
 
 def main(files_root, outdir, baryons):
@@ -142,35 +188,35 @@ def main(files_root, outdir, baryons):
     print('Generating the ccl cosmo instance')
     cosmo = get_cosmo_ccl(cosmo_params, baryons)
     print('Computing cls')
-    return ells, compute_cls(cosmo, tracers_info, ells, outdir)
+    return ells, compute_cls(cosmo, tracers_info, ells, outdir), cosmo
     ######
 
+#############################################################################
 #############################################################################
 
 files_root = "/mnt/zfsusers/gravityls_3/codes/S8z/NGC/"
 outdir = '/mnt/extraspace/gravityls_3/S8z/Cls/fiducial/'
+maxreldev = 0.10
+kmax = 0.1
+
+#######
 
 print('BCM')
-ells, cls_bcm = main(files_root, outdir, baryons=True)
+ells, cls_bcm, _ = main(files_root, outdir, baryons=True)
 print('No Baryons')
-ells, cls_nob = main(files_root, outdir, baryons=False)
-
-print('Computing reldev = nobaryons/bcm - 1')
-rdev = cls_nob / cls_bcm - 1
-ell_cuts_index = np.argmax(rdev > 0.02, axis=1)
-print(ell_cuts_index)
-ell_cuts = np.zeros(ell_cuts_index.size)
-print('Finding ell_cut with rdev = 0.02')
-for i, li in enumerate(ell_cuts_index):
-    ell_cuts[i] = ells[li]
+ells, cls_nob, cosmo_nob = main(files_root, outdir, baryons=False)
 
 #######
 print('Loading tracers_info to add ell_cuts')
-fname = os.path.join(outdir, 'bcm',  'tracers_info.yml')
+fname = os.path.join(outdir, 'nobaryons',  'tracers_info.yml')
 tracers_info = read_yml(fname)
+##
+ell_cuts = estimate_ell_cuts(ells, cls_bcm, cls_nob, cosmo_nob, tracers_info, files_root,
+                             kmax=kmax, maxreldev=maxreldev)
 for i, tr in enumerate(tracers_info['data_vectors']):
     tr['ell_cuts'] = [0,  int(ell_cuts[i])]  # For yml compatibility
-fname = os.path.join(outdir, 'tracers_info_with_ell_cuts.yml')
+##
+fname = os.path.join(outdir, 'tracers_info_with_ell_cuts_10pc.yml')
 print('Saving tracers_info with add ell_cuts in {}'.format(fname))
 write_yml(tracers_info, fname)
 print('Finished')
