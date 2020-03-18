@@ -133,20 +133,21 @@ def estimate_ell_cuts(ells, cls_bcm, cls_nob, cosmo, tracers_info,
         z, pz = np.loadtxt(fname, usecols=(1,3), unpack=True)
         zbin.append(np.sum(z * pz) / np.sum(pz))
 
-    ell_cuts = np.zeros(len(tracers_info['data_vectors']))
-    for i, tr in enumerate(tracers_info['data_vectors']):
-        tr1, tr2 = tr['tracers']
-        if ('gc' in tr1) or ('gc' in tr2):
-            if 'gc' in tr1:
-                gci = int(tr1[-1])
-            else:
-                gci = int(tr2[-1])
-            ell_cuts[i] = estimate_ell_cuts_clustering(cosmo, kmax/h, zbin[gci])
-        elif ('wl' in tr1) or ('wl' in tr2):
-            ell_cuts[i] = estimate_ell_cuts_shear(ells, cls_bcm[i], cls_nob[i],
+    ell_cuts = np.ones(len(tracers_info['data_vectors'])) * ells[-1]
+    for i, dv in enumerate(tracers_info['data_vectors']):
+        print dv
+        for tr in dv['tracers']:
+            if 'gc' in tr:
+                ell_tmp = estimate_ell_cuts_clustering(cosmo, kmax/h, zbin[int(tr[-1])])
+            elif 'wl' in tr:
+                ell_tmp = estimate_ell_cuts_shear(ells, cls_bcm[i], cls_nob[i],
                                                   maxreldev)
-        else:
-            raise ValueError('Tracers in data_vectors not recognized! [{}, {}]'.format(tr1, tr2))
+            elif 'cv' in tr:
+                ell_tmp = ells[-1]
+
+            print ell_tmp
+
+            ell_cuts[i] = np.min([ell_cuts[i], ell_tmp])
 
     return ell_cuts
 
