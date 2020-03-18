@@ -196,7 +196,7 @@ def main(files_root, outdir, baryons):
 
 files_root = "/mnt/zfsusers/gravityls_3/codes/S8z/NGC/"
 outdir = '/mnt/extraspace/gravityls_3/S8z/Cls/fiducial/'
-maxreldev = 0.10
+maxreldev = 0.02
 kmax = 0.1
 
 #######
@@ -216,7 +216,7 @@ ell_cuts = estimate_ell_cuts(ells, cls_bcm, cls_nob, cosmo_nob, tracers_info, fi
 for i, tr in enumerate(tracers_info['data_vectors']):
     tr['ell_cuts'] = [0,  int(ell_cuts[i])]  # For yml compatibility
 ##
-fname = os.path.join(outdir, 'tracers_info_with_ell_cuts_10pc.yml')
+fname = os.path.join(outdir, 'tracers_info_with_ell_cuts.yml')
 print('Saving tracers_info with add ell_cuts in {}'.format(fname))
 write_yml(tracers_info, fname)
 print('Finished')
