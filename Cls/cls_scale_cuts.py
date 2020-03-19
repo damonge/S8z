@@ -100,7 +100,7 @@ def compute_cls(cosmo, tracers_info, ells, outdir):
         #     m =
         #     cls = (1.+m)*cls
 
-        fname = os.path.join(outdir, 'Cls_{}_{}.npz'.format(*dv['tracers']))
+        fname = os.path.join(outdir, 'cls_{}_{}.npz'.format(*dv['tracers']))
         print ('Saving {}'.format(fname))
         np.savez_compressed(fname, cls=cls, ells=ells)
         cls_ar[i] = cls
