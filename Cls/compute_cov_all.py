@@ -14,117 +14,30 @@ import common as co
 ##############################################################################
 ##############################################################################
 nside = 4096
-outdir = '/mnt/extraspace/gravityls_3/S8z/Cls/all_together'
+obsdir = '/mnt/extraspace/gravityls_3/S8z/Cls/all_together'
+outdir = os.path.join(obsdir, 'new_fiducial_cov')
 if nside != 4096:
     outdir += '_{}'.format(nside)
-
-##############################################################################
-################ Define functions to read Cls ###############
-##############################################################################
-def load_thcls(th_outdir, file_prefix, nmaps):
-    cls_arr = []
-    for i in range(nmaps):
-        for j in range(i, nmaps):
-            fname = os.path.join(th_outdir, file_prefix + '_{}_{}.txt'.format(i, j))
-            if not os.path.isfile(fname): #spin0-spin0
-                raise ValueError('Missing workspace: ', fname)
-
-            cls_arr.append(np.loadtxt(fname, usecols=1))
-
-    ell = np.loadtxt(fname, usecols=0)
-
-    return ell, np.array(cls_arr)
-
-def load_thcls_gk(nmaps_g, nmaps_k):
-    th_outdir = '/mnt/extraspace/evam/S8z/Clsgk/'
-    file_prefix = 'DES_Cls_gk_lmax3xNside'
-    cls_arr = []
-    for i in range(nmaps_g):
-        for j in range(nmaps_k):
-            fname = os.path.join(th_outdir, file_prefix + '_{}_{}.txt'.format(i, j))
-            if not os.path.isfile(fname): #spin0-spin0
-                raise ValueError('Missing workspace: ', fname)
-
-            cls_arr.append(np.loadtxt(fname, usecols=1))
-
-    ell = np.loadtxt(fname, usecols=0)
-
-    return ell, np.array(cls_arr)
-
-def load_thcls_Planck():
-    fdir = '/mnt/extraspace/evam/S8z/ClsPlanck/'
-    cls_arr = []
-    for i in range(5):
-        fname = os.path.join(fdir, 'DESPlanck_Cls_gk_lmax3xNside_{}.txt'.format(i))
-        cls_arr.append(np.loadtxt(fname, usecols=1))
-    for i in range(4):
-        fname = os.path.join(fdir, 'DESPlanck_Cls_kk_lmax3xNside_{}.txt'.format(i))
-        cls_arr.append(np.loadtxt(fname, usecols=1))
-        cls_arr.append(cls_arr[-1] * 0)
-
-    fname = os.path.join(fdir, 'Planck_Cls_kk_lmax3xNside.txt')
-    cls_arr.append(np.loadtxt(fname, usecols=1))
-    ell = np.loadtxt(fname, usecols=0)
-
-    return ell, np.array(cls_arr)
-
-def load_cls_all_matrix_th():
-    # All th_ell are the same
-    th_outdir = '/mnt/extraspace/evam/S8z/Clsgg/'
-    th_ell, Clsgg_ar = load_thcls(th_outdir, 'DES_Cls_lmax3xNside', 5)
-
-    th_outdir = '/mnt/extraspace/evam/S8z/Clskk/'
-    th_ell, Clskk_ar = load_thcls(th_outdir, 'DES_Cls_kk_lmax3xNside', 4)
-
-    th_outdir = '/mnt/extraspace/evam/S8z/Clsgk/'
-    th_ell, Clsgk_ar = load_thcls_gk(5, 4)
-
-    th_outdir = '/mnt/extraspace/evam/S8z/ClsPlanck/'
-    th_ell, ClsPlanck_ar = load_thcls_Planck()
-
-    # Checked that all EE's are the same as in the array.
-    Clskk_full_mat = np.zeros((8, 8, th_ell.shape[0]))
-    i, j = np.triu_indices(4)
-    Clskk_full_mat[::2, ::2][i, j] = Clskk_ar
-    Clskk_full_mat[::2, ::2][j, i] = Clskk_ar
-    i, j = np.triu_indices(8)
-    Clskk_ar_full = Clskk_full_mat[i, j]
-
-    th_cls_all = np.zeros((14, 14, th_ell.shape[0]))
-
-    i, j = np.triu_indices(5)
-    th_cls_all[:5, :5][i, j] = Clsgg_ar
-
-    i, j = np.triu_indices(8)
-    th_cls_all[5:-1, 5:-1][i, j] = Clskk_ar_full
-
-    th_cls_all[:, -1] = ClsPlanck_ar
-
-    for i in range(5):
-        th_cls_all[i, 5:-1:2] = Clsgk_ar[i * 4 : (i + 1) * 4]
-
-    i, j = np.triu_indices(14)
-    th_cls_all_ar = th_cls_all[i, j]
-    th_cls_all[j, i] = th_cls_all_ar
-
-    return th_ell, th_cls_all
 
 ##############################################################################
 ################ Read Cls ###############
 ##############################################################################
 ############# Load theory cl matrix
 
-th_ell, th_cls_all = load_cls_all_matrix_th()
+bins = [0, 1, 2, 3, 4] + [5, 5] + [6, 6] + [7, 7] + [8, 8] + [9]
+index_B = [6, 8, 10, 12]
+th_folder = '/mnt/extraspace/gravityls_3/S8z/Cls/fiducial/nobaryons'
+th_ell, th_cls_all = co.load_cls_all_array_from_files(th_folder, bins, index_B)
 
 ############# Load obs. cl matrix
 
-lbpw_obs_cls_all = np.load(os.path.join(outdir, 'cl_all_with_noise.npz'))
+lbpw_obs_cls_all = np.load(os.path.join(obsdir, 'cl_all_with_noise.npz'))
 lbpw, obs_cls_all_wn = lbpw_obs_cls_all['l'], lbpw_obs_cls_all['cls']
 
 ############### Load DES noises
 
-desgc_nls_arr = np.load(os.path.join(outdir, 'des_w_cl_shot_noise_ns{}.npz'.format(nside)))['cls']
-dessh_nls_arr = np.load(os.path.join(outdir, 'des_sh_metacal_rot0-10_noise_ns{}.npz'.format(nside)))['cls']
+desgc_nls_arr = np.load(os.path.join(obsdir, 'des_w_cl_shot_noise_ns{}.npz'.format(nside)))['cls']
+dessh_nls_arr = np.load(os.path.join(obsdir, 'des_sh_metacal_rot0-10_noise_ns{}.npz'.format(nside)))['cls']
 
 ############## Add noise
 for i, nls_i in enumerate(desgc_nls_arr):
@@ -133,8 +46,10 @@ for i, nls_i in enumerate(desgc_nls_arr):
 
 for i, nls_i in enumerate(dessh_nls_arr):
     ish = len(desgc_nls_arr) + 2 * i
-    th_cls_all[ish : ish + 2, ish : ish + 2] += interp1d(lbpw, nls_i, bounds_error=False,
-                                                     fill_value=(nls_i[:, :, 0], nls_i[:, :, -1]))(th_ell)
+    th_cls_all[ish, ish] += interp1d(lbpw, nls_i[0, 0], bounds_error=False,
+                                     fill_value=(nls_i[0, 0, 0], nls_i[0, 0, -1]))(th_ell)
+    th_cls_all[ish+1, ish+1] += interp1d(lbpw, nls_i[1, 1], bounds_error=False,
+                                     fill_value=(nls_i[1, 1, 0], nls_i[1, 1, -1]))(th_ell)
 ############## Use observed Planck's Cls for auto-correlation
 th_cls_all[-1, -1] = interp1d(lbpw, obs_cls_all_wn[-1, -1], bounds_error=False,
                                  fill_value=(obs_cls_all_wn[-1, -1, 0], obs_cls_all_wn[-1, -1, -1]))(th_ell)
@@ -159,7 +74,7 @@ def get_nelems_spin(spin):
 
 def get_workspace_from_spins_masks(spin1, spin2, mask1, mask2):
         ws = nmt.NmtWorkspace()
-        fname = os.path.join(outdir, 'w{}{}_{}{}.dat'.format(spin1, spin2, mask1, mask2))
+        fname = os.path.join(obsdir, 'w{}{}_{}{}.dat'.format(spin1, spin2, mask1, mask2))
         ws.read_from(fname)
         return ws
 
@@ -226,7 +141,7 @@ def compute_covariance_full(clTh, nbpw, nbins, maps_bins, maps_spins, maps_masks
         wa = get_workspace_from_spins_masks(s_a1, s_a2, m_a1, m_a2)
         wb = get_workspace_from_spins_masks(s_b1, s_b2, m_b1, m_b2)
 
-        fname_cw = os.path.join(outdir, 'cw{}{}{}{}.dat'.format(*cov_masks[i]))
+        fname_cw = os.path.join(obsdir, 'cw{}{}{}{}.dat'.format(*cov_masks[i]))
         if fname_cw != fname_cw_old:
             cw = nmt.NmtCovarianceWorkspace()
             cw.read_from(fname_cw)
