@@ -143,7 +143,7 @@ def estimate_ell_cuts(ells, cls_bcm, cls_nob, cosmo, tracers_info,
                 ell_tmp = estimate_ell_cuts_shear(ells, cls_bcm[i], cls_nob[i],
                                                   maxreldev)
             elif 'cv' in tr:
-                ell_tmp = ells[-1]
+                ell_tmp = 2000 # ells[-1]
 
             print ell_tmp
 
@@ -195,8 +195,9 @@ def main(files_root, outdir, baryons):
 #############################################################################
 #############################################################################
 
-files_root = "/mnt/zfsusers/gravityls_3/codes/S8z/NGC/"
+# files_root = "/mnt/zfsusers/gravityls_3/codes/S8z/NGC/"
 outdir = '/mnt/extraspace/gravityls_3/S8z/Cls/fiducial/'
+files_root = outdir
 maxreldev = 0.02
 kmax = 0.1
 
