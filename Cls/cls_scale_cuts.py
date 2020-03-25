@@ -202,7 +202,7 @@ outdir = '/mnt/extraspace/gravityls_3/S8z/Cls/fiducial-5pc/'
 files_root = outdir
 maxreldev = 0.05
 kmax = 0.1
-header='# ell_cuts calculated as the min ell for which nobaryons/baryons -1 > {} or kmax = {}\n'.format(maxreldev, kmax)
+header='# ell_cuts calculated as the min ell for which baryons/nobaryons -1 > {} or kmax = {}\n'.format(maxreldev, kmax)
 
 #######
 
