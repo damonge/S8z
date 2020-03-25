@@ -216,7 +216,12 @@ tracers_info = read_yml(fname)
 ell_cuts = estimate_ell_cuts(ells, cls_bcm, cls_nob, cosmo_nob, tracers_info, files_root,
                              kmax=kmax, maxreldev=maxreldev)
 for i, tr in enumerate(tracers_info['data_vectors']):
-    tr['ell_cuts'] = [0,  int(ell_cuts[i])]  # For yml compatibility
+    lmin = 0
+    if 'PLAcv' in tr['tracers']:
+        lmin = 8
+
+    tr['ell_cuts'] = [lmin,  int(ell_cuts[i])]  # For yml compatibility
+
 ##
 fname = os.path.join(outdir, 'tracers_info_with_ell_cuts.yml')
 print('Saving tracers_info with add ell_cuts in {}'.format(fname))
