@@ -9,8 +9,10 @@ def read_yml(file):
     with open(file, 'r') as stream:
         return yaml.safe_load(stream)
 
-def write_yml(yml, file):
+def write_yml(yml, file, header=''):
     with open(file, 'w') as stream:
+        stream.write(header)
+        stream.write('\n')
         yaml.dump(yml, stream)
 
 def get_cosmo_ccl(cosmo_params, baryons=False):
@@ -196,10 +198,11 @@ def main(files_root, outdir, baryons):
 #############################################################################
 
 # files_root = "/mnt/zfsusers/gravityls_3/codes/S8z/NGC/"
-outdir = '/mnt/extraspace/gravityls_3/S8z/Cls/fiducial/'
+outdir = '/mnt/extraspace/gravityls_3/S8z/Cls/fiducial-5pc/'
 files_root = outdir
-maxreldev = 0.02
+maxreldev = 0.05
 kmax = 0.1
+header='# ell_cuts calculated as the min ell for which nobaryons/baryons -1 > {} or kmax = {}\n'.format(maxreldev, kmax)
 
 #######
 
@@ -225,5 +228,5 @@ for i, tr in enumerate(tracers_info['data_vectors']):
 ##
 fname = os.path.join(outdir, 'tracers_info_with_ell_cuts.yml')
 print('Saving tracers_info with add ell_cuts in {}'.format(fname))
-write_yml(tracers_info, fname)
+write_yml(tracers_info, fname, header)
 print('Finished')
