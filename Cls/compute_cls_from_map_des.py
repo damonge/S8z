@@ -21,10 +21,7 @@ output_folder = '/mnt/extraspace/gravityls_3/S8z/Cls/'
 data_folder = '/mnt/extraspace/damonge/S8z_data/derived_products'
 des_nside = 4096
 des_mask = 'mask_ns{}.fits'.format(des_nside)
-if des_nside == 4096:
-    des_folder_gcl = 'des_clustering'
-else:
-    des_folder_gcl = 'des_clustering_{}'.format(des_nside)
+des_folder_gcl = 'des_clustering'
 
 des_data_folder = os.path.join(data_folder, des_folder_gcl)
 
