@@ -1,4 +1,7 @@
 #!/usr/bin/python
+from optparse import OptionParser
+from scipy.interpolate import interp1d
+import pymaster as nmt
 import numpy as np
 import os
 import sys
@@ -25,8 +28,8 @@ prefix_out = os.path.join(o.outdir, 'run_gc0gc0')
 ##############################################################################
 ################## Covariance from Simulations ###############################
 ##############################################################################
-cl_ar = np.load(run_path + '_cl_0001-0100.npz')['cl00']
-C = np.cov(cl_for_C)
+cl_ar = np.load(prefix_out + '_clsims_0001-0100.npz')['cl00'][:, 0, :]
+C = np.cov(cl_ar.T)
 fname = prefix_out + '_covSims_0001-0100.npz' # sims_suffix
 np.savez_compressed(fname, C)
 
@@ -34,9 +37,22 @@ np.savez_compressed(fname, C)
 ###################### Covariance from Theory ################################
 #############################################################################
 
-s_a1 = s_a2 = s_b1 = s_b2 = 0
+#Read input power spectra
 fname = '/mnt/extraspace/gravityls_3/S8z/Cls/fiducial/nobaryons/cls_DESgc0_DESgc0.npz'
-cla1b1 = cla1b2 = cla2b1 = cla2b2 = np.load(fname)['cls']
+gc0gc0 = np.load(fname)
+l, cltt = gc0gc0['ells'], gc0gc0['cls']
+
+fname = '/mnt/extraspace/gravityls_3/S8z/Cls/all_together_2048/des_w_cl_shot_noise_ns2048.npz'
+nls = np.load(fname)
+nltt = interp1d(nls['l'],  nls['cls'][0], bounds_error=False,
+                fill_value=(nls['cls'][0, 0], nls['cls'][0, -1]))(l)
+# nside = C.shape[0]
+# cltt=cltt[:3*nside]
+# nltt=nltt[:3*nside]
+
+cla1b1 = cla1b2 = cla2b1 = cla2b2 = (cltt+nltt).reshape(1, -1)
+###
+s_a1 = s_a2 = s_b1 = s_b2 = 0
 
 w00=nmt.NmtWorkspace();
 w00.read_from('/mnt/extraspace/gravityls_3/S8z/Cls/all_together_2048/w00_00.dat')
