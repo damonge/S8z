@@ -82,7 +82,34 @@ f0 = get_fields()
 #Compute mode-coupling matrix
 # TODO: Define outdir
 w00=nmt.NmtWorkspace();
-w00.read_from('/mnt/extraspace/gravityls_3/S8z/Cls/all_together_2048/w00_00.dat')
+# w00.read_from('/mnt/extraspace/gravityls_3/S8z/Cls/all_together_2048/w00_00.dat')
+
+###
+# Compute a new workspaces to be sure they have been created with mask_2048 and
+# not a degraded mask_4096
+###
+# The ells_lim_bpw
+ells = np.arange(3 * nside)
+ells_lim_bpw= np.array([0, 30, 60, 90, 120, 150, 180, 210, 240, 272, 309, 351, 398, 452, 513, 582, 661, 750, 852, 967, 1098, 1247, 1416, 1608, 1826, 2073, 2354, 2673, 3035, 3446, 3914, 4444, 5047, 5731, 6508, 7390, 8392, 9529, 10821, 12288])
+ells_lim_bpw = ells_lim_bpw[ells_lim_bpw <= ells[-1] + 1]
+bpws = np.zeros(ells.shape)
+weights = np.zeros(ells.shape)
+
+li = 0
+for i, lf in enumerate(ells_lim_bpw[1:]):
+    # lf += 1
+    bpws[li : lf] = i
+    weights[li : lf] += 1./weights[li : lf].size
+    li = lf
+
+b = nmt.NmtBin(nside, bpws=bpws, ells=ells, weights=weights)
+
+w00.compute_coupling_matrix(f0,f0,b)
+w00.write_to(prefix_out+"_w00_00.dat");
+cw = nmt.NmtCovarianceWorkspace()
+cw.compute_coupling_coefficients(f0, f0, f0, f0)
+cw.write_to(prefix_out + '_cw0000.dat')
+
 
 #Generate theory prediction
 if not os.path.isfile(prefix_out+'_cl_th.txt') :

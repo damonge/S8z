@@ -55,11 +55,13 @@ cla1b1 = cla1b2 = cla2b1 = cla2b2 = (cltt+nltt).reshape(1, -1)
 s_a1 = s_a2 = s_b1 = s_b2 = 0
 
 w00=nmt.NmtWorkspace();
-w00.read_from('/mnt/extraspace/gravityls_3/S8z/Cls/all_together_2048/w00_00.dat')
+# w00.read_from('/mnt/extraspace/gravityls_3/S8z/Cls/all_together_2048/w00_00.dat')
+w00.read_from(prefix_out + '_w00_00.dat')
 wa = wb = w00
 
 cw = nmt.NmtCovarianceWorkspace()
-cw.read_from('/mnt/extraspace/gravityls_3/S8z/Cls/all_together_2048/cw0000.dat')
+# cw.read_from('/mnt/extraspace/gravityls_3/S8z/Cls/all_together_2048/cw0000.dat')
+cw.read_from(prefix_out + '_cw0000.dat')
 
 C = nmt.gaussian_covariance(cw, int(s_a1), int(s_a2), int(s_b1), int(s_b2),
                             cla1b1, cla1b2, cla2b1, cla2b2,
