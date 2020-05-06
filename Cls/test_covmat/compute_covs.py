@@ -28,9 +28,9 @@ prefix_out = os.path.join(o.outdir, 'run_gc0gc0')
 ##############################################################################
 ################## Covariance from Simulations ###############################
 ##############################################################################
-cl_ar = np.load(prefix_out + '_clsims_0001-0100.npz')['cl00'][:, 0, :]
+cl_ar = np.load(prefix_out + '_clsims_0001-1000.npz')['cl00'][:, 0, :]
 C = np.cov(cl_ar.T)
-fname = prefix_out + '_covSims_0001-0100.npz' # sims_suffix
+fname = prefix_out + '_covSims_0001-1000.npz' # sims_suffix
 np.savez_compressed(fname, C)
 
 ##############################################################################
