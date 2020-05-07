@@ -12,8 +12,8 @@ def opt_callback(option, opt, value, parser):
 parser = OptionParser()
 parser.add_option('--outdir',dest='outdir',default='./sims',type=str,
                   help='Output directory')
-# parser.add_option('--nside', dest='nside', default=512, type=int,
-#                   help='HEALPix nside param')
+parser.add_option('--nside', dest='nside', default=512, type=int,
+                  help='HEALPix nside param')
 parser.add_option('--isim-ini', dest='isim_ini', default=1, type=int,
                   help='Index of first simulation')
 parser.add_option('--isim-end', dest='isim_end', default=100, type=int,
@@ -29,9 +29,16 @@ os.makedirs(o.outdir, exist_ok=True)
 # Set files prefix
 prefix_out = os.path.join(o.outdir, 'run_gc0gc0')
 # Set nside
-nside = 2048
+valid_nside = [2048, 4096]
+if not o.nside in valid_nside:
+    raise ValueError('nside must be one of {}'.format(valid_nside))
+nside = o.nside  # 2048
 # Set nsims
 nsims=o.isim_end-o.isim_ini+1
+# Set root path of observations
+obs_path = '/mnt/extraspace/gravityls_3/S8z/Cls/all_together'
+if nside != 4096:
+    obs_path += '_{}'.format(nside)
 ##############################################################################
 
 ##############################################################################
@@ -40,7 +47,7 @@ fname = '/mnt/extraspace/gravityls_3/S8z/Cls/fiducial/nobaryons/cls_DESgc0_DESgc
 gc0gc0 = np.load(fname)
 l, cltt = gc0gc0['ells'], gc0gc0['cls']
 
-fname = '/mnt/extraspace/gravityls_3/S8z/Cls/all_together_2048/des_w_cl_shot_noise_ns2048.npz'
+fname = os.path.join(obs_path, 'des_w_cl_shot_noise_ns{}.npz'.format(nside))
 nls = np.load(fname)
 nltt = interp1d(nls['l'],  nls['cls'][0], bounds_error=False,
                 fill_value=(nls['cls'][0, 0], nls['cls'][0, -1]))(l)
@@ -51,11 +58,11 @@ nltt=nltt[:3*nside]
 # nltt[0]=0
 
 #Read mask
-fname = '/mnt/extraspace/damonge/S8z_data/derived_products/des_clustering/mask_ns2048.fits'
+fname = '/mnt/extraspace/damonge/S8z_data/derived_products/des_clustering/mask_ns{}.fits'.format(nside)
 mask_lss = hp.read_map(fname, verbose=False)
 
 #Read bpw
-fname = '/mnt/extraspace/gravityls_3/S8z/Cls/all_together_2048/l_bpw.txt'
+fname = os.path.join(obs_path, 'l_bpw.txt')
 lbpw = np.loadtxt(fname)
 if not np.all(nls['l'] == lbpw):
     raise ValueError("lbpw != nls['l']")
