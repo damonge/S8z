@@ -15,6 +15,8 @@ def opt_callback(option, opt, value, parser):
 parser = OptionParser()
 parser.add_option('--outdir',dest='outdir',default='./sims',type=str,
                   help='Output directory')
+parser.add_option('--nside', dest='nside', default=512, type=int,
+                  help='HEALPix nside param')
 
 (o, args) = parser.parse_args()
 ##############################################################################
@@ -23,6 +25,10 @@ if not os.path.exists(o.outdir):
     raise ValueError("outdir does not exist:".format(o.outdir))
 # Set files prefix
 prefix_out = os.path.join(o.outdir, 'run_gc0gc0')
+# Set root path of observations
+obs_path = '/mnt/extraspace/gravityls_3/S8z/Cls/all_together'
+if o.nside != 4096:
+    obs_path += '_{}'.format(o.nside)
 ##############################################################################
 
 ##############################################################################
@@ -42,7 +48,7 @@ fname = '/mnt/extraspace/gravityls_3/S8z/Cls/fiducial/nobaryons/cls_DESgc0_DESgc
 gc0gc0 = np.load(fname)
 l, cltt = gc0gc0['ells'], gc0gc0['cls']
 
-fname = '/mnt/extraspace/gravityls_3/S8z/Cls/all_together_2048/des_w_cl_shot_noise_ns2048.npz'
+fname = os.path.join(obs_path, 'des_w_cl_shot_noise_ns{}.npz'.format(o.nside))
 nls = np.load(fname)
 nltt = interp1d(nls['l'],  nls['cls'][0], bounds_error=False,
                 fill_value=(nls['cls'][0, 0], nls['cls'][0, -1]))(l)
