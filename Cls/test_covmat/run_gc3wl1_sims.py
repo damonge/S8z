@@ -62,13 +62,13 @@ b = nmt.NmtBin(nside, bpws=bpws, ells=ells, weights=weights)
 # gc3 - wl1
 fname = '/mnt/extraspace/gravityls_3/S8z/Cls/fiducial/nobaryons/cls_DESgc3_DESwl1.npz'
 fid_data = np.load(fname)
-l, clte = fid_data['ells'], fid_data['cls']
+l, clte = fid_data['ells'][:3*nside], fid_data['cls'][:3:nside]
 # gc3 - gc3
 fname = '/mnt/extraspace/gravityls_3/S8z/Cls/fiducial/nobaryons/cls_DESgc3_DESgc3.npz'
-cltt = np.load(fname)['cls']
+cltt = np.load(fname)['cls'][:3:nside]
 # wl1 - wl1
 fname = '/mnt/extraspace/gravityls_3/S8z/Cls/fiducial/nobaryons/cls_DESwl1_DESwl1.npz'
-clee = np.load(fname)['cls']
+clee = np.load(fname)['cls'][:3:nside]
 # BB
 clbb = np.zeros(clee.size)
 # TB
@@ -93,13 +93,6 @@ nlbb = interp1d(nls['l'],  nlbb, bounds_error=False,
 # gc3-wl1
 nlte = np.zeros(l.size)
 
-# Remove extra ells
-cltt=cltt[:3*nside]
-nltt=nltt[:3*nside]
-clee=clee[:3*nside]
-nlee=nlee[:3*nside]
-clbb=clbb[:3*nside]
-nlbb=nlbb[:3*nside]
 # These lines come from the PCLCovariance's run_sph_sims.py script
 # cltt[0]=0
 # nltt[0]=0
@@ -129,9 +122,9 @@ def get_fields() :
     :param mask: a sky mask.
     :param w_cont: deproject any contaminants? (not implemented yet)
     """
-    st,sq,su=hp.synfast([cltt+nltt,clee+nlee,clbb+nlbb,clte+nlte],o.nside,new=True,verbose=False,pol=True, n_iter=0)
-    ff0=nmt.NmtField(mask_gc,[st])
-    ff2=nmt.NmtField(mask_wl,[sq, su])
+    st,sq,su=hp.synfast([cltt+nltt,clee+nlee,clbb+nlbb,clte+nlte],o.nside,new=True,verbose=False,pol=True)
+    ff0=nmt.NmtField(mask_gc,[st], n_iter=0)
+    ff2=nmt.NmtField(mask_wl,[sq, su], n_iter=0)
     return ff0, ff2
 
 np.random.seed(1000)
