@@ -34,7 +34,7 @@ if o.nside != 4096:
 ##############################################################################
 ################## Covariance from Simulations ###############################
 ##############################################################################
-cl_ar = np.load(prefix_out + '_clsims_0001-0100.npz')['cl00'][:, 0, :]
+cl_ar = np.load(prefix_out + '_clsims_0001-0100.npz')['cls'][:, 0, :]
 C = np.cov(cl_ar.T)
 fname = prefix_out + '_covSims_0001-0100.npz' # sims_suffix
 np.savez_compressed(fname, C)
@@ -44,31 +44,54 @@ np.savez_compressed(fname, C)
 #############################################################################
 
 #Read input power spectra
+# gc3 - wl1
 fname = '/mnt/extraspace/gravityls_3/S8z/Cls/fiducial/nobaryons/cls_DESgc3_DESwl1.npz'
 fid_data = np.load(fname)
-l, cltt = fid_data['ells'], fid_data['cls']
+l, clte = fid_data['ells'], fid_data['cls']
+# gc3 - gc3
+fname = '/mnt/extraspace/gravityls_3/S8z/Cls/fiducial/nobaryons/cls_DESgc3_DESgc3.npz'
+cltt = np.load(fname)['cls']
+# wl1 - wl1
+fname = '/mnt/extraspace/gravityls_3/S8z/Cls/fiducial/nobaryons/cls_DESwl1_DESwl1.npz'
+clee = np.load(fname)['cls']
+# EB, BE, BB, TB
+cltb = cleb = clbe = clbb = 0 * clee
 
+# Read noise
+# gc3
 fname = os.path.join(obs_path, 'des_w_cl_shot_noise_ns{}.npz'.format(o.nside))
 nls = np.load(fname)
-nltt = interp1d(nls['l'],  nls['cls'][0], bounds_error=False,
-                fill_value=(nls['cls'][0, 0], nls['cls'][0, -1]))(l)
+nltt = nls['cls'][3]
+nltt = interp1d(nls['l'],  nltt, bounds_error=False,
+                fill_value=(nltt[0], nltt[-1]))(l)
+# wl1
+fname = os.path.join(obs_path, 'des_sh_metacal_rot0-10_noise_ns{}.npz'.format(o.nside)) 
+nls = np.load(fname)
+nlee = nls['cls'][1, 0, 0]
+nlbb = nls['cls'][1, 1, 1]
+nlee = interp1d(nls['l'],  nlee, bounds_error=False,
+                fill_value=(nlee[0], nlee[-1]))(l)
+nlbb = interp1d(nls['l'],  nlbb, bounds_error=False,
+                fill_value=(nlbb[0], nlbb[-1]))(l)
+
 # nside = C.shape[0]
 # cltt=cltt[:3*nside]
 # nltt=nltt[:3*nside]
 
-# a1 = gc3, b1 = wl1, a2 = gc3, b2 = wl1
-# all combinations are gc3-wl1
-cla1b1 = cla2b2 = cla1b2 = cla2b1 =(cltt+nltt).reshape(1, -1)
-s_a1 = s_a2 = 0
-s_b1 = s_b2 = 2
+# a1 = gc3, a2 = wl1, b1 = gc3, b2 = wl1
+cla1b1 = (cltt + nltt).reshape(1, -1)
+cla2b2 = np.array([(clee + nlee), cleb, clbe, clbb + nlbb])
+cla1b2 = cla2b1 = np.array([clte, cltb])
+s_a1 = s_b1 = 0
+s_a2 = s_b2 = 2
 ###
 
 w00=nmt.NmtWorkspace();
-w00.read_from(os.path.join(obs_path, 'w02_02.dat')
+w00.read_from(os.path.join(obs_path, 'w02_02.dat'))
 wa = wb = w00
 
 cw = nmt.NmtCovarianceWorkspace()
-cw.read_from(os.path.join(obs_path, 'cw0202.dat')
+cw.read_from(os.path.join(obs_path, 'cw0202.dat'))
 
 C = nmt.gaussian_covariance(cw, int(s_a1), int(s_a2), int(s_b1), int(s_b2),
                             cla1b1, cla1b2, cla2b1, cla2b2,

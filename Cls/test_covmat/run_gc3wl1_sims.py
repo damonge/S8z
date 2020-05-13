@@ -10,9 +10,9 @@ import os
 def opt_callback(option, opt, value, parser):
         setattr(parser.values, option.dest, value.split(','))
 parser = OptionParser()
-parser.add_option('--outdir',dest='outdir',default='./sims',type=str,
+parser.add_option('--outdir',dest='outdir',default='./sims_gc3wl1',type=str,
                   help='Output directory')
-parser.add_option('--nside', dest='nside', default=512, type=int,
+parser.add_option('--nside', dest='nside', default=4096, type=int,
                   help='HEALPix nside param')
 parser.add_option('--isim-ini', dest='isim_ini', default=1, type=int,
                   help='Index of first simulation')
@@ -43,16 +43,47 @@ if nside != 4096:
 
 ##############################################################################
 #Read input power spectra
+# gc3 - wl1
 fname = '/mnt/extraspace/gravityls_3/S8z/Cls/fiducial/nobaryons/cls_DESgc3_DESwl1.npz'
 fid_data = np.load(fname)
-l, cltt = fid_data['ells'], fid_data['cls']
+l, clte = fid_data['ells'], fid_data['cls']
+# gc3 - gc3
+fname = '/mnt/extraspace/gravityls_3/S8z/Cls/fiducial/nobaryons/cls_DESgc3_DESgc3.npz'
+cltt = np.load(fname)['cls']
+# wl1 - wl1
+fname = '/mnt/extraspace/gravityls_3/S8z/Cls/fiducial/nobaryons/cls_DESwl1_DESwl1.npz'
+clee = np.load(fname)['cls']
+# BB
+clbb = np.zeros(clee.size)
+# TB
+cltb = 0 * clte
 
+# Read noise
+# gc3
 fname = os.path.join(obs_path, 'des_w_cl_shot_noise_ns{}.npz'.format(nside))
 nls = np.load(fname)
-nltt = interp1d(nls['l'],  nls['cls'][0], bounds_error=False,
-                fill_value=(nls['cls'][0, 0], nls['cls'][0, -1]))(l)
+nltt = nls['cls'][3]
+nltt = interp1d(nls['l'],  nltt, bounds_error=False,
+                fill_value=(nltt[0], nltt[-1]))(l)
+# wl1
+fname = os.path.join(obs_path, 'des_sh_metacal_rot0-10_noise_ns{}.npz'.format(nside)) 
+nls = np.load(fname)
+nlee = nls['cls'][1, 0, 0]
+nlbb = nls['cls'][1, 1, 1]
+nlee = interp1d(nls['l'],  nlee, bounds_error=False,
+                fill_value=(nlee[0], nlee[-1]))(l)
+nlbb = interp1d(nls['l'],  nlbb, bounds_error=False,
+                fill_value=(nlbb[0], nlbb[-1]))(l)
+# gc3-wl1
+nlte = np.zeros(l.size)
+
+# Remove extra ells
 cltt=cltt[:3*nside]
 nltt=nltt[:3*nside]
+clee=clee[:3*nside]
+nlee=nlee[:3*nside]
+clbb=clbb[:3*nside]
+nlbb=nlbb[:3*nside]
 # These lines come from the PCLCovariance's run_sph_sims.py script
 # cltt[0]=0
 # nltt[0]=0
@@ -79,22 +110,22 @@ def get_fields() :
     :param mask: a sky mask.
     :param w_cont: deproject any contaminants? (not implemented yet)
     """
-    st=hp.synfast(cltt+nltt,nside,new=True,verbose=False,pol=True)
+    st,sq,su=hp.synfast([cltt+nltt,clee+nlee,clbb+nlbb,clte+nlte],o.nside,new=True,verbose=False,pol=True)
     ff0=nmt.NmtField(mask_lss,[st])
-    return ff0
+    ff2=nmt.NmtField(mask_lss,[sq, su])
+    return ff0, ff2
 
 np.random.seed(1000)
-f0 = get_fields()
+f0, f2 = get_fields()
 
 #Compute mode-coupling matrix
-# TODO: Define outdir
-w = nmt.NmtWorkspace();
-w.read_from(os.path.join(obs_path, 'w02_02.dat')
+w02 = nmt.NmtWorkspace();
+w02.read_from(os.path.join(obs_path, 'w02_02.dat'))
 
 #Generate theory prediction
 if not os.path.isfile(prefix_out+'_cl_th.txt') :
     print("Computing theory prediction")
-    cl00_th=w00.decouple_cell(w00.couple_cell(np.array([cltt])))
+    cl00_th=w02.decouple_cell(w02.couple_cell(np.array([clte, cltb])))
     np.savetxt(prefix_out+"_cl_th.txt",
                np.transpose([lbpw,cl00_th[0]]))
 
@@ -106,14 +137,14 @@ for i in np.arange(nsims) :
     print("%d-th sim"%(i+o.isim_ini))
 
     if not os.path.isfile(prefix_out+"_cl_%04d.npz"%(o.isim_ini+i)) :
-        f0 = get_fields()
-        cl00=w00.decouple_cell(nmt.compute_coupled_cell(f0,f0))#,cl_bias=clb00)
+        f0, f2 = get_fields()
+        cl00=w02.decouple_cell(nmt.compute_coupled_cell(f0,f2))#,cl_bias=clb00)
         np.savez(prefix_out+"_cl_%04d"%(o.isim_ini+i),
-                 l=lbpw,cltt=cl00[0])
+                 l=lbpw,cls=cl00[0])
     cld=np.load(prefix_out+"_cl_%04d.npz"%(o.isim_ini+i))
-    cl00_all.append([cld['cltt']])
+    cl00_all.append([cld['cls']])
 cl00_all=np.array(cl00_all)
 
 #Save output
 np.savez(prefix_out+'_clsims_%04d-%04d'%(o.isim_ini,o.isim_end),
-         l=lbpw,cl00=cl00_all)
+         l=lbpw,cls=cl00_all)
