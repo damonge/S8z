@@ -90,7 +90,10 @@ nlbb=nlbb[:3*nside]
 
 #Read mask
 fname = '/mnt/extraspace/damonge/S8z_data/derived_products/des_clustering/mask_ns{}.fits'.format(nside)
-mask_lss = hp.read_map(fname, verbose=False)
+mask_gc = hp.read_map(fname, verbose=False)
+
+fname = '/mnt/extraspace/damonge/S8z_data/derived_products/des_shear/map_metacal_bin1_counts_w_ns{}.fits'.format(nside)
+mask_wl = hp.read_map(fname, verbose=False)
 
 #Read bpw
 fname = os.path.join(obs_path, 'l_bpw.txt')
@@ -111,8 +114,8 @@ def get_fields() :
     :param w_cont: deproject any contaminants? (not implemented yet)
     """
     st,sq,su=hp.synfast([cltt+nltt,clee+nlee,clbb+nlbb,clte+nlte],o.nside,new=True,verbose=False,pol=True)
-    ff0=nmt.NmtField(mask_lss,[st])
-    ff2=nmt.NmtField(mask_lss,[sq, su])
+    ff0=nmt.NmtField(mask_gc,[st])
+    ff2=nmt.NmtField(mask_wl,[sq, su])
     return ff0, ff2
 
 np.random.seed(1000)
@@ -120,7 +123,41 @@ f0, f2 = get_fields()
 
 #Compute mode-coupling matrix
 w02 = nmt.NmtWorkspace();
-w02.read_from(os.path.join(obs_path, 'w02_02.dat'))
+if not os.path.isfile(prefix_out+"_w02_02.dat") : #spin0-spin2
+    print("Computing w02")
+    w02.compute_coupling_matrix(f0,f2,b)
+    w02.write_to(prefix_out+"_w02_02.dat");
+else:
+    w02.read_from(prefix_out+"_w02_02.dat")
+
+# Compute covariance
+if not os.path.isfile(prefix_out + '_covTh.npz'):
+    cw = nmt.NmtCovarianceWorkspace()
+    # This is the time-consuming operation
+    # Note that you only need to do this once,
+    # regardless of spin
+    if not os.path.isfile(prefix_out+"_cw0202.dat") : #spin0-spin2
+        print("Computing cw0202")
+        cw.compute_coupling_coefficients(f0, f2, f0, f2)
+        cw.write_to(prefix_out + "_cw0202.dat")
+    else:
+        # cw.read_from(os.path.join(obs_path, 'cw0202.dat'))
+        cw.read_from(os.path.join(prefix_out, '_cw0202.dat'))
+
+    cla1b1 = (cltt + nltt).reshape(1, -1)
+    cla2b2 = np.array([(clee + nlee), cleb, clbe, clbb + nlbb])
+    cla1b2 = cla2b1 = np.array([clte, cltb])
+    s_a1 = s_b1 = 0
+    s_a2 = s_b2 = 2
+    ###
+    wa = wb = w02
+
+
+    C = nmt.gaussian_covariance(cw, int(s_a1), int(s_a2), int(s_b1), int(s_b2),
+                                cla1b1, cla1b2, cla2b1, cla2b2,
+                                wa, wb)
+    fname = prefix_out + '_covTh.npz'
+    np.savez_compressed(fname, C)
 
 #Generate theory prediction
 if not os.path.isfile(prefix_out+'_cl_th.txt') :
