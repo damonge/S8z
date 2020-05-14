@@ -62,17 +62,17 @@ b = nmt.NmtBin(nside, bpws=bpws, ells=ells, weights=weights)
 # gc3 - wl1
 fname = '/mnt/extraspace/gravityls_3/S8z/Cls/fiducial/nobaryons/cls_DESgc3_DESwl1.npz'
 fid_data = np.load(fname)
-l, clte = fid_data['ells'][:3*nside], fid_data['cls'][:3:nside]
+l, clte = fid_data['ells'][:3*nside], fid_data['cls'][:3*nside]
 # gc3 - gc3
 fname = '/mnt/extraspace/gravityls_3/S8z/Cls/fiducial/nobaryons/cls_DESgc3_DESgc3.npz'
-cltt = np.load(fname)['cls'][:3:nside]
+cltt = np.load(fname)['cls'][:3*nside]
 # wl1 - wl1
 fname = '/mnt/extraspace/gravityls_3/S8z/Cls/fiducial/nobaryons/cls_DESwl1_DESwl1.npz'
-clee = np.load(fname)['cls'][:3:nside]
+clee = np.load(fname)['cls'][:3*nside]
 # BB
 clbb = np.zeros(clee.size)
 # TB
-cltb = 0 * clte
+cleb = clbe = cltb = 0 * clte
 
 # Read noise
 # gc3
@@ -109,6 +109,16 @@ fname = os.path.join(obs_path, 'l_bpw.txt')
 lbpw = np.loadtxt(fname)
 if not np.all(nls['l'] == lbpw):
     raise ValueError("lbpw != nls['l']")
+
+# print(b.get_effective_ells())
+# print(lbpw)
+# print(cltt.shape)
+# print(clte.shape)
+# print(cltb.shape)
+# print(clee.shape)
+# print(cleb.shape)
+# print(clbb.shape)
+
 ##############################################################################
 
 
@@ -151,11 +161,12 @@ if not os.path.isfile(prefix_out + '_covTh.npz'):
         cw.write_to(prefix_out + "_cw0202.dat")
     else:
         # cw.read_from(os.path.join(obs_path, 'cw0202.dat'))
-        cw.read_from(os.path.join(prefix_out, '_cw0202.dat'))
+        cw.read_from(prefix_out + '_cw0202.dat')
 
     cla1b1 = (cltt + nltt).reshape(1, -1)
     cla2b2 = np.array([(clee + nlee), cleb, clbe, clbb + nlbb])
     cla1b2 = cla2b1 = np.array([clte, cltb])
+
     s_a1 = s_b1 = 0
     s_a2 = s_b2 = 2
     ###
