@@ -40,7 +40,24 @@ obs_path = '/mnt/extraspace/gravityls_3/S8z/Cls/all_together'
 if nside != 4096:
     obs_path += '_{}'.format(nside)
 ##############################################################################
+# Define binning: needed to recompute workspaces
+# The ells_lim_bpw
+ells = np.arange(3 * nside)
+ells_lim_bpw= np.array([0, 30, 60, 90, 120, 150, 180, 210, 240, 272, 309, 351, 398, 452, 513, 582, 661, 750, 852, 967, 1098, 1247, 1416, 1608, 1826, 2073, 2354, 2673, 3035, 3446, 3914, 4444, 5047, 5731, 6508, 7390, 8392, 9529, 10821, 12288])
+ells_lim_bpw = ells_lim_bpw[ells_lim_bpw <= ells[-1] + 1]
+bpws = np.zeros(ells.shape)
+weights = np.zeros(ells.shape)
 
+li = 0
+for i, lf in enumerate(ells_lim_bpw[1:]):
+    # lf += 1
+    bpws[li : lf] = i
+    weights[li : lf] += 1./weights[li : lf].size
+    li = lf
+
+b = nmt.NmtBin(nside, bpws=bpws, ells=ells, weights=weights)
+
+##############################################################################
 ##############################################################################
 #Read input power spectra
 # gc3 - wl1
@@ -90,9 +107,9 @@ def get_fields() :
     :param mask: a sky mask.
     :param w_cont: deproject any contaminants? (not implemented yet)
     """
-    st,sq,su=hp.synfast([cltt+nltt,clee+nlee,clbb+nlbb,clte+nlte],o.nside,new=True,verbose=False,pol=True,n_iter=0)
-    ff0=nmt.NmtField(mask_gc,[st])
-    ff2=nmt.NmtField(mask_wl,[sq, su])
+    st,sq,su=hp.synfast([cltt+nltt,clee+nlee,clbb+nlbb,clte+nlte],o.nside,new=True,verbose=False,pol=True)
+    ff0=nmt.NmtField(mask_gc,[st],n_iter=0)
+    ff2=nmt.NmtField(mask_wl,[sq, su],n_iter=0)
     return ff0, ff2
 
 np.random.seed(1000)
@@ -193,7 +210,7 @@ if not os.path.isfile(prefix_out + '_covTh.npz'):
                                           [cl_tt],  # TT
                                           [cl_te, cl_tb],  # TE, TB
                                           [cl_tt],  # TT
-                                          [cl_te, cl_tb]  # TE, TB
+                                          [cl_te, cl_tb],  # TE, TB
                                           w00, wb=w02).reshape([n_ell, 1,
                                                                 n_ell, 2])
 
@@ -237,7 +254,7 @@ if not os.path.isfile(prefix_out + '_covTh.npz'):
                                                                 n_ell, 4])
 
     fname = prefix_out + '_covTh.npz'
-    np.savez_compressed(fname, cw0000=covar_00_00, cw00_02=covar_00_02,
+    np.savez_compressed(fname, cw00_00=covar_00_00, cw00_02=covar_00_02,
                         cw00_22=covar_00_22, cw02_02=covar_02_02,
                         cw02_22=covar_02_22, cw22_22=covar_22_22)
 
