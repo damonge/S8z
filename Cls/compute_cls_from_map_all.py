@@ -76,6 +76,7 @@ des_mask_path = os.path.join(des_data_folder, des_mask)
 # Read mask
 # mask_lss = hp.ud_grade(hp.read_map(des_mask_path, verbose=False), nside_out=2048)
 des_mask = hp.read_map(des_mask_path, verbose=False)
+des_mask_good = des_mask > 0  # Can be generalized to accept a different threshold
 # Read maps (gg)
 nmaps = 5
 des_maps = []
@@ -84,9 +85,10 @@ for i in range(nmaps):
     des_maps.append(hp.read_map(map_file))
 des_maps = np.array(des_maps)
 
-des_N_mean = des_maps.sum(axis=1) / des_mask.sum()
-des_maps_dg = des_maps / (des_N_mean[:, None] * des_mask) - 1
-des_maps_dg[np.isnan(des_maps_dg)] = 0.
+des_N_mean = des_maps[:, des_mask_good].sum(axis=1) / des_mask[des_mask_good].sum()
+des_maps_dg = np.zeros(des_maps.shape)
+des_maps_dg[:, des_mask_good] = des_maps[:, des_mask_good] / (des_N_mean[:, None] * des_mask[des_mask_good]) - 1
+des_mask[~des_mask_good] = 0
 
 # ###### Test ######
 #
