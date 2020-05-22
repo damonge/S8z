@@ -26,13 +26,18 @@ parser.add_option('--plot', dest='plot_stuff', default=False, action='store_true
 
 data_folder = '/mnt/extraspace/damonge/S8z_data/derived_products'
 # nside = 4096
-nside = 2048
+# nside = 2048
+nside = 512
+
+wltype = 'im3shape'
+# wltype = 'metacal'
 
 # Output folder
 if nside == 4096:
-    output_folder = '/mnt/extraspace/gravityls_3/S8z/Cls/all_together'
+    output_folder = '/mnt/extraspace/gravityls_3/S8z/Cls/all_together_{}'.format(wltype)
 else:
-    output_folder = '/mnt/extraspace/gravityls_3/S8z/Cls/all_together_{}'.format(nside)
+    output_folder = '/mnt/extraspace/gravityls_3/S8z/Cls/all_together_{}_{}'.format(wltype, nside)
+os.makedirs(output_folder, exist_ok=True)
 
 ##############################################################################
 ############################## Set Binning ###################################
@@ -104,13 +109,13 @@ des_maps_we1 = []
 des_maps_we2 = []
 des_maps_wopm = []
 for i in range(4):
-    fname = os.path.join(des_data_folder_gwl, 'map_metacal_bin{}_counts_w_ns{}.fits'.format(i, nside))
+    fname = os.path.join(des_data_folder_gwl, 'map_{}_bin{}_counts_w_ns{}.fits'.format(wltype, i, nside))
     des_mask_gwl.append(hp.read_map(fname))
-    fname = os.path.join(des_data_folder_gwl, 'map_metacal_bin{}_counts_e1_ns{}.fits'.format(i, nside))
+    fname = os.path.join(des_data_folder_gwl, 'map_{}_bin{}_counts_e1_ns{}.fits'.format(wltype, i, nside))
     des_maps_we1.append(hp.read_map(fname))
-    fname = os.path.join(des_data_folder_gwl, 'map_metacal_bin{}_counts_e2_ns{}.fits'.format(i, nside))
+    fname = os.path.join(des_data_folder_gwl, 'map_{}_bin{}_counts_e2_ns{}.fits'.format(wltype, i, nside))
     des_maps_we2.append(hp.read_map(fname))
-    fname = os.path.join(des_data_folder_gwl, 'map_metacal_bin{}_counts_opm_ns{}.fits'.format(i, nside))
+    fname = os.path.join(des_data_folder_gwl, 'map_{}_bin{}_counts_opm_ns{}.fits'.format(wltype, i, nside))
     des_maps_wopm.append(hp.read_map(fname))
 
 des_mask_gwl = np.array(des_mask_gwl)
@@ -141,10 +146,17 @@ des_maps_e2[np.isnan(des_maps_e2)] = 0.
 
 planck_folder = 'planck_lensing'
 planck_data_folder = os.path.join(data_folder, planck_folder)
-fname = os.path.join(planck_data_folder, 'mask_ns{}.fits'.format(nside))
-planck_mask = hp.read_map(fname)
-fname = os.path.join(planck_data_folder, 'map_kappa_ns{}.fits'.format(nside))
-planck_map_kappa = hp.read_map(fname)
+
+if nside in [2048, 4096]:
+    fname = os.path.join(planck_data_folder, 'mask_ns{}.fits'.format(nside))
+    planck_mask = hp.read_map(fname)
+    fname = os.path.join(planck_data_folder, 'map_kappa_ns{}.fits'.format(nside))
+    planck_map_kappa = hp.read_map(fname)
+else:
+    fname = os.path.join(planck_data_folder, 'mask_ns{}.fits'.format(4096))
+    planck_mask = hp.ud_grade(hp.read_map(fname), nside_out=nside)
+    fname = os.path.join(planck_data_folder, 'map_kappa_ns{}.fits'.format(4096))
+    planck_map_kappa = hp.ud_grade(hp.read_map(fname), nside_out=nside)
 
 ##############################################################################
 ########################## Putting all together ##############################
@@ -218,33 +230,33 @@ for i in range(len(maps)):
 ##############################################################################
 # Generate covariance workspaces
 ##############################################################################
-cl_indices = []
-nmaps = len(maps)
-for i in range(nmaps):
-    for j in range(i, nmaps):
-        cl_indices.append([i, j])
-
-cov_indices = []
-for i, clij in enumerate(cl_indices):
-    for j, clkl in enumerate(cl_indices[i:]):
-        cov_indices.append(cl_indices[i] + cl_indices[i + j])
-
-for indices in cov_indices:
-    i, j, k, l = indices
-    mask1 = masks[i]
-    mask2 = masks[j]
-    mask3 = masks[k]
-    mask4 = masks[l]
-    fname = os.path.join(output_folder, 'cw{}{}{}{}.dat'.format(mask1, mask2, mask3, mask4))
-    sys.stdout.write('cw{}{}{}{}.dat\n'.format(mask1, mask2, mask3, mask4))
-    if not os.path.isfile(fname):
-        cw = nmt.NmtCovarianceWorkspace()
-        f1 = fields[i]
-        f2 = fields[j]
-        f3 = fields[k]
-        f4 = fields[l]
-        cw.compute_coupling_coefficients(f1, f2, f3, f4)
-        cw.write_to(fname)
+# cl_indices = []
+# nmaps = len(maps)
+# for i in range(nmaps):
+#     for j in range(i, nmaps):
+#         cl_indices.append([i, j])
+# 
+# cov_indices = []
+# for i, clij in enumerate(cl_indices):
+#     for j, clkl in enumerate(cl_indices[i:]):
+#         cov_indices.append(cl_indices[i] + cl_indices[i + j])
+# 
+# for indices in cov_indices:
+#     i, j, k, l = indices
+#     mask1 = masks[i]
+#     mask2 = masks[j]
+#     mask3 = masks[k]
+#     mask4 = masks[l]
+#     fname = os.path.join(output_folder, 'cw{}{}{}{}.dat'.format(mask1, mask2, mask3, mask4))
+#     sys.stdout.write('cw{}{}{}{}.dat\n'.format(mask1, mask2, mask3, mask4))
+#     if not os.path.isfile(fname):
+#         cw = nmt.NmtCovarianceWorkspace()
+#         f1 = fields[i]
+#         f2 = fields[j]
+#         f3 = fields[k]
+#         f4 = fields[l]
+#         cw.compute_coupling_coefficients(f1, f2, f3, f4)
+#         cw.write_to(fname)
 
 ##############################################################################
 # Compute Cls
@@ -347,7 +359,7 @@ else:
 
 # Compute DES shear noise
 
-des_wl_noise_file = os.path.join(output_folder, "des_sh_metacal_rot0-10_noise_ns{}.npz".format(nside))
+des_wl_noise_file = os.path.join(output_folder, "des_sh_{}_rot0-10_noise_ns{}.npz".format(wltype, nside))
 if os.path.isfile(des_wl_noise_file):
     N_wl = np.load(des_wl_noise_file)['cls']
     for ibin, N_wli in enumerate(N_wl):
@@ -362,8 +374,8 @@ else:
         ws.read_from(fname)
 
         for irot in range(10):
-            map_file_e1 = os.path.join(des_data_folder_gwl, 'map_metacal_bin{}_rot{}_counts_e1_ns{}.fits'.format(ibin, irot, nside))
-            map_file_e2 = os.path.join(des_data_folder_gwl, 'map_metacal_bin{}_rot{}_counts_e2_ns{}.fits'.format(ibin, irot, nside))
+            map_file_e1 = os.path.join(des_data_folder_gwl, 'map_{}_bin{}_rot{}_counts_e1_ns{}.fits'.format(wltype, ibin, irot, nside))
+            map_file_e2 = os.path.join(des_data_folder_gwl, 'map_{}_bin{}_rot{}_counts_e2_ns{}.fits'.format(wltype, ibin, irot, nside))
 
             map_we1 = hp.read_map(map_file_e1)
             map_we2 = hp.read_map(map_file_e2)
