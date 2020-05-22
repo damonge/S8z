@@ -1,8 +1,9 @@
 #!/bin/bash
 
 #nside=4096
-nside=2048
-nrandom=10
+nside=512
+nrot=20
+irot0=10
 
 # Clustering
 echo python3 des_clustering.py ${nside}
@@ -18,9 +19,6 @@ do
 	echo python3 des_shear.py ${cat_name} ${nside} ${bin}
 	addqueue -q cmb -m 12 -n 1 /usr/bin/python3 des_shear.py ${cat_name} ${nside} ${bin}
 	#  - Loop over random rotations (needed for noise bias estimation)
-	for ((irot=0;irot<${nrandom};irot++)); do
-	    echo python3 des_shear ${cat_name} ${nside} ${bin} do_rotate ${irot}
-	    addqueue -q cmb -m 12 -n 1 /usr/bin/python3 des_shear.py ${cat_name} ${nside} ${bin} do_rotate ${irot}
-	done
+	addqueue -q cmb -m 12 -n 1 ./run_des_rotations.sh ${nside} ${nrot} ${irot0} ${cat_name} ${bin}
     done
 done
