@@ -25,12 +25,12 @@ parser.add_option('--plot', dest='plot_stuff', default=False, action='store_true
 ##############################################################################
 
 data_folder = '/mnt/extraspace/damonge/S8z_data/derived_products'
-# nside = 4096
+nside = 4096
 # nside = 2048
-nside = 512
+# nside = 512
 
-wltype = 'im3shape'
-# wltype = 'metacal'
+# wltype = 'im3shape'
+wltype = 'metacal'
 
 # Output folder
 if nside == 4096:
@@ -46,12 +46,13 @@ os.makedirs(output_folder, exist_ok=True)
 ells = np.arange(3 * nside)
 ells_lim_bpw= np.array([0, 30, 60, 90, 120, 150, 180, 210, 240, 272, 309, 351, 398, 452, 513, 582, 661, 750, 852, 967, 1098, 1247, 1416, 1608, 1826, 2073, 2354, 2673, 3035, 3446, 3914, 4444, 5047, 5731, 6508, 7390, 8392, 9529, 10821, 12288])
 ells_lim_bpw = ells_lim_bpw[ells_lim_bpw <= 3 * nside] # 3*nside == ells[-1] + 1
-if 3*nside not in ells_lim_bpw: # Exhaust lmax --> gives same result as previous method, but adds 1 bpw
+if 3*nside not in ells_lim_bpw: # Exhaust lmax --> gives same result as previous method, but adds 1 bpw (not for 4096)
     ells_lim_bpw = np.append(ells_lim_bpw, 3*nside)
 b = nmt.NmtBin.from_edges(ells_lim_bpw[:-1], ells_lim_bpw[1:])
 
 fname = os.path.join(output_folder, 'l_bpw.txt')
 np.savetxt(fname, b.get_effective_ells())
+sys.exit()
 ##############################################################################
 ############################ DES Clustering ##################################
 ##############################################################################
