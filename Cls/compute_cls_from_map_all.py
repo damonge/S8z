@@ -23,6 +23,7 @@ parser.add_option('--plot', dest='plot_stuff', default=False, action='store_true
 ##############################################################################
 ##############################################################################
 ##############################################################################
+gc_threshold = 0.5
 
 data_folder = '/mnt/extraspace/damonge/S8z_data/derived_products'
 nside = 4096
@@ -68,7 +69,8 @@ des_mask_path = os.path.join(des_data_folder, des_mask)
 # Read mask
 # mask_lss = hp.ud_grade(hp.read_map(des_mask_path, verbose=False), nside_out=2048)
 des_mask = hp.read_map(des_mask_path, verbose=False)
-des_mask_good = des_mask > 0  # Can be generalized to accept a different threshold
+des_mask_good = des_mask > gc_threshold  # Can be generalized to accept a different threshold
+des_mask[~des_mask_good] = 0
 # Read maps (gg)
 nmaps = 5
 des_maps = []
@@ -80,7 +82,6 @@ des_maps = np.array(des_maps)
 des_N_mean = des_maps[:, des_mask_good].sum(axis=1) / des_mask[des_mask_good].sum()
 des_maps_dg = np.zeros(des_maps.shape)
 des_maps_dg[:, des_mask_good] = des_maps[:, des_mask_good] / (des_N_mean[:, None] * des_mask[des_mask_good]) - 1
-des_mask[~des_mask_good] = 0
 
 # ###### Test ######
 #
