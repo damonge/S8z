@@ -37,7 +37,7 @@ wltype = 'im3shape'
 if nside == 4096:
     output_folder = '/mnt/extraspace/gravityls_3/S8z/Cls/all_together_{}_newbin_newnoise'.format(wltype)
 else:
-    output_folder = '/mnt/extraspace/gravityls_3/S8z/Cls/all_together_{}_{}_newbin_newnoise_sh'.format(wltype, nside)
+    output_folder = '/mnt/extraspace/gravityls_3/S8z/Cls/all_together_{}_{}_newbin_newnoise'.format(wltype, nside)
 os.makedirs(output_folder, exist_ok=True)
 
 ##############################################################################
@@ -407,8 +407,11 @@ np.savez(os.path.join(output_folder, "cl_all_no_noise"),
 if not os.path.isfile(fname_rots):
     N_wl_rot = []
     for ibin in range(len(des_maps_e1)):
+        ws = nmt.NmtWorkspace()
+        fname = os.path.join(output_folder, 'w22_{}{}.dat'.format(1 + ibin, 1 + ibin))
+        ws.read_from(fname)
         N_wl_rot.append(co.get_shear_noise_rot(ibin, wltype, nside, nrot=10,
-                        mask=des_mask_gwl[ibin], opm_mean=des_opm_mean[ibin]))
+                        mask=des_mask_gwl[ibin], opm_mean=des_opm_mean[ibin], ws=ws))
     np.savez(fname_rots,
              l=b.get_effective_ells(), cls=N_wl_rot)
 #### End noise
