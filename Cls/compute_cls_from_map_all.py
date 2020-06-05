@@ -354,6 +354,7 @@ else:
 # Compute DES shear noise
 
 des_wl_noise_file = os.path.join(output_folder, "des_sh_{}_noise_ns{}.npz".format(wltype, nside))
+fname_rots = os.path.join(output_folder, "des_sh_{}_rot0-10_noise_ns{}.npz".format(wltype, nside))
 if os.path.isfile(des_wl_noise_file):
     N_wl = np.load(des_wl_noise_file)['cls']
     for ibin, N_wli in enumerate(N_wl):
@@ -389,12 +390,21 @@ else:
              cls_cov = np.array(N_wl_raw)/noise_factor[:, None, None, None])
 
     # Save noise from rotated galaxies
-    fname_rots = os.path.join(output_folder, "des_sh_{}_rot0-10_noise_ns{}.npz".format(wltype, nside))
     np.savez(fname_rots,
              l=b.get_effective_ells(), cls=N_wl_rot)
 
 np.savez(os.path.join(output_folder, "cl_all_no_noise"),
          l=b.get_effective_ells(), cls=cl_matrix)
+
+# Noise from rotated galaxies for crosscheck
+if not os.path.isfile(fname_rots):
+    N_wl_rot = []
+    for ibin in range(len(des_maps_we1)):
+        N_wl_rot.append(co.get_shear_noise_rot(ibin, wltype, nside, nrot=10,
+                        mask=des_mask_gwl[ibin], opm_mean=des_opm_mean[ibin]))
+    np.savez(fname_rots,
+             l=b.get_effective_ells(), cls=N_wl_rot)
+#### End noise
 
 
 # Split cls in files
