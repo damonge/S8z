@@ -43,6 +43,7 @@ for cl in p['c_ells']:
     cell.compute_spectra(fields)
     cls[cl['name']] = cell
 
+
 fig, axes = plt.subplots(nfields, nfields, sharex=True, figsize=(10, 10))
 for cl in p['c_ells']:
     cell = cls[cl['name']]
@@ -57,7 +58,7 @@ for cl in p['c_ells']:
     ax.set_xscale('log')
     ax.set_yscale('log')
 
-for ipol in [1, 2, 3]:
+for ipol in [0, 1, 2, 3]:
     fig, axes = plt.subplots(nfields_shear, nfields_shear, sharex=True, figsize=(10, 10))
     for cl in p['c_ells']:
         cell = cls[cl['name']]
@@ -67,8 +68,11 @@ for ipol in [1, 2, 3]:
         i1 = field_shear_ids[cell.tracers[0]]
         i2 = field_shear_ids[cell.tracers[1]]
         ax = axes[i1][i2]
-        ax.plot(cell.ells, cell.c_ell[ipol] - cell.n_ell[ipol], 'k-')
-        ax.plot(cell.ells, np.zeros_like(cell.ells), 'k--')
+        #ax.plot(cell.ells, cell.c_ell[ipol] - cell.n_ell[ipol], 'k-')
+        #ax.plot(cell.ells, np.zeros_like(cell.ells), 'k--')
+        ax.plot(cell.ells, cell.c_ell[ipol], 'k-')
+        ax.plot(cell.ells, cell.n_ell[ipol], 'r-')
+        ax.plot(cell.ells, cell.n_ell_analytic[ipol], 'b-')
         ax.set_title(cell.name)
         ax.set_xscale('log')
 
