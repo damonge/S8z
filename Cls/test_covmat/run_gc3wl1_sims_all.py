@@ -10,7 +10,7 @@ import os
 def opt_callback(option, opt, value, parser):
         setattr(parser.values, option.dest, value.split(','))
 parser = OptionParser()
-parser.add_option('--outdir',dest='outdir',default='./sims_debug_flat_cls',type=str,
+parser.add_option('--outdir',dest='outdir',default='./sims_gc3_wl1_all_newnoise',type=str,
                   help='Output directory')
 parser.add_option('--nside', dest='nside', default=512, type=int,
                   help='HEALPix nside param')
@@ -27,7 +27,7 @@ parser.add_option('--plot', dest='plot_stuff', default=False, action='store_true
 
 ##############################################################################
 # Set files prefix
-prefix_out = os.path.join(o.outdir, 'run_debug_flat_cls_')
+prefix_out = os.path.join(o.outdir, 'run_gc3_wl1_all')
 # Set nside
 valid_nside = [512, 2048, 4096]
 # wltype
@@ -36,7 +36,7 @@ wltype = 'im3shape'
 # Set root path of observations
 obs_path = '/mnt/extraspace/gravityls_3/S8z/Cls/all_together'
 if o.nside != 4096:
-    obs_path += '_{}_{}_newbin'.format(wltype, o.nside)
+    obs_path += '_{}_{}_newbin_newnoise'.format(wltype, o.nside)
 ##############################################################################
 # Check obspath:
 if not os.path.exists(obs_path):
@@ -77,15 +77,24 @@ clee = np.load(fname)['cls'][:3*nside]
 cltb = clbb = clbe = cleb = 0 * cltt
 
 # Read noise
-nltt = 0*cltt
-nlte = 0*cltt
-nlee = 0*cltt
-nlbb = 0*cltt
-
-# Make them flat
-cltt = np.ones(l.size)
-clte = np.ones(l.size)
-clee = np.ones(l.size)
+# gc3
+fname = os.path.join(obs_path, 'des_w_cl_shot_noise_ns{}.npz'.format(nside))
+nls = np.load(fname)
+nltt = nls['cls'][3]
+nltt = interp1d(nls['l'],  nltt, bounds_error=False,
+                fill_value=(nltt[0], nltt[-1]))(l)
+# wl1
+# fname = os.path.join(obs_path, 'des_sh_{}_rot0-10_noise_ns{}.npz'.format(wltype, nside)) 
+fname = os.path.join(obs_path, 'des_sh_{}_noise_ns{}.npz'.format(wltype, nside)) 
+nls = np.load(fname)
+nlee = nls['cls'][1, 0, 0]
+nlbb = nls['cls'][1, 1, 1]
+nlee = interp1d(nls['l'],  nlee, bounds_error=False,
+                fill_value=(nlee[0], nlee[-1]))(l)
+nlbb = interp1d(nls['l'],  nlbb, bounds_error=False,
+                fill_value=(nlbb[0], nlbb[-1]))(l)
+# gc3-wl1
+nlte = np.zeros(l.size)
 
 #Read mask
 fname = '/mnt/extraspace/damonge/S8z_data/derived_products/des_clustering/mask_ns{}.fits'.format(nside)
@@ -200,72 +209,74 @@ if not os.path.isfile(prefix_out + '_covTh.npz'):
     ##
     # Compute matrices
     ##
+    # Copule fiducial Cls
+    # Noise for covmat
+    cl02_cov = w02.couple_cell([clte, cltb]) / np.mean(mask_gc * mask_wl)
+    cl22_cov = w22.couple_cell([clee, cleb, clbe, clbb]) / np.mean(mask_wl**2)
+    nlee_cov = nls['cls_raw'][1, 0, 0] / nls['noise_factor'][1]
+    nlbb_cov = nls['cls_raw'][1, 1, 1] / nls['noise_factor'][1]
+    cl22_cov[0] += nlee_cov
+    cl22_cov[-1] += nlbb_cov
+
+    #####
     covar_00_00 = nmt.gaussian_covariance(cw00_00,
                                           0, 0, 0, 0,  # Spins of the 4 fields
-                                          [cltt],  # TT
-                                          [cltt],  # TT
-                                          [cltt],  # TT
-                                          [cltt],  # TT
+                                          [cltt+nltt],  # TT
+                                          [cltt+nltt],  # TT
+                                          [cltt+nltt],  # TT
+                                          [cltt+nltt],  # TT
                                           w00, wb=w00).reshape([lbpw.size, 1,
                                                                 lbpw.size, 1])
 
     covar_00_02 = nmt.gaussian_covariance(cw00_02, 0, 0, 0, 2,  # Spins of the 4 fields
-                                          [cltt],  # TT
-                                          [clte, cltb],  # TE, TB
-                                          [cltt],  # TT
-                                          [clte, cltb],  # TE, TB
+                                          [cltt+nltt],  # TT
+                                          cl02_cov,  # TE, TB
+                                          [cltt+nltt],  # TT
+                                          cl02_cov,  # TE, TB
                                           w00, wb=w02).reshape([lbpw.size, 1,
                                                                 lbpw.size, 2])
 
     covar_00_22 = nmt.gaussian_covariance(cw00_22, 0, 0, 2, 2,  # Spins of the 4 fields
-                                          [clte, cltb],  # TE, TB
-                                          [clte, cltb],  # TE, TB
-                                          [clte, cltb],  # TE, TB
-                                          [clte, cltb],  # TE, TB
+                                          cl02_cov,  # TE, TB
+                                          cl02_cov,  # TE, TB
+                                          cl02_cov,  # TE, TB
+                                          cl02_cov,  # TE, TB
                                           w00, wb=w22).reshape([lbpw.size, 1,
                                                                 lbpw.size, 4])
 
     covar_02_02 = nmt.gaussian_covariance(cw02_02, 0, 2, 0, 2,  # Spins of the 4 fields
-                                          [cltt],  # TT
-                                          [clte, cltb],  # TE, TB
-                                          [clte, cltb],  # ET, BT
-                                          [clee, cleb,
-                                           cleb, clbb],  # EE, EB, BE, BB
+                                          [cltt+nltt],  # TT
+                                          cl02_cov,  # TE, TB
+                                          cl02_cov,  # ET, BT
+                                          cl22_cov,  # EE, EB, BE, BB
                                           w02, wb=w02).reshape([lbpw.size, 2,
                                                                 lbpw.size, 2])
 
     covar_02_22 = nmt.gaussian_covariance(cw02_22, 0, 2, 2, 2,  # Spins of the 4 fields
-                                          [clte, cltb],  # TE, TB
-                                          [clte, cltb],  # TE, TB
-                                          [clee, cleb,
-                                           cleb, clbb],  # EE, EB, BE, BB
-                                          [clee, cleb,
-                                           cleb, clbb],  # EE, EB, BE, BB
+                                          cl02_cov,  # TE, TB
+                                          cl02_cov,  # TE, TB
+                                          cl22_cov,  # EE, EB, BE, BB
+                                          cl22_cov,  # EE, EB, BE, BB
                                           w02, wb=w22).reshape([lbpw.size, 2,
                                                                 lbpw.size, 4])
 
     covar_22_22 = nmt.gaussian_covariance(cw22_22, 2, 2, 2, 2,  # Spins of the 4 fields
-                                          [clee, cleb,
-                                           cleb, clbb],  # EE, EB, BE, BB
-                                          [clee, cleb,
-                                           cleb, clbb],  # EE, EB, BE, BB
-                                          [clee, cleb,
-                                           cleb, clbb],  # EE, EB, BE, BB
-                                          [clee, cleb,
-                                           cleb, clbb],  # EE, EB, BE, BB
+                                          cl22_cov,  # EE, EB, BE, BB
+                                          cl22_cov,  # EE, EB, BE, BB
+                                          cl22_cov,  # EE, EB, BE, BB
+                                          cl22_cov,  # EE, EB, BE, BB
                                           w22, wb=w22).reshape([lbpw.size, 4,
                                                                 lbpw.size, 4])
-
-    fname = prefix_out + '_covTh.npz'
-    np.savez_compressed(fname, cw00_00=covar_00_00, cw00_02=covar_00_02,
-                        cw00_22=covar_00_22, cw02_02=covar_02_02,
-                        cw02_22=covar_02_22, cw22_22=covar_22_22)
+fname = prefix_out + '_covTh.npz'
+np.savez_compressed(fname, cw00_00=covar_00_00, cw00_02=covar_00_02,
+                    cw00_22=covar_00_22, cw02_02=covar_02_02,
+                    cw02_22=covar_02_22, cw22_22=covar_22_22)
 
 #Generate theory prediction
 if not os.path.isfile(prefix_out+'_clth.txt') :
     print("Computing theory prediction")
     cl00_th=w00.decouple_cell(w00.couple_cell(np.array([cltt])))
-    cl02_th=w02.decouple_cell(w02.couple_cell(np.array([clte,clte])))
+    cl02_th=w02.decouple_cell(w02.couple_cell(np.array([clte,cltb])))
     cl22_th=w22.decouple_cell(w22.couple_cell(np.array([clee,clbe,cleb,clbb])))
     np.savetxt(prefix_out+"_clth.txt",
                np.transpose([b.get_effective_ells(),cl00_th[0],cl02_th[0],cl02_th[1],

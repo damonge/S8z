@@ -23,16 +23,22 @@ parser.add_option('--plot', dest='plot_stuff', default=False, action='store_true
 ##############################################################################
 ##############################################################################
 ##############################################################################
+gc_threshold = 0.5
 
 data_folder = '/mnt/extraspace/damonge/S8z_data/derived_products'
 # nside = 4096
-nside = 2048
+# nside = 2048
+nside = 512
+
+wltype = 'im3shape'
+# wltype = 'metacal'
 
 # Output folder
 if nside == 4096:
-    output_folder = '/mnt/extraspace/gravityls_3/S8z/Cls/all_together'
+    output_folder = '/mnt/extraspace/gravityls_3/S8z/Cls/all_together_{}_newbin_newnoise'.format(wltype)
 else:
-    output_folder = '/mnt/extraspace/gravityls_3/S8z/Cls/all_together_{}'.format(nside)
+    output_folder = '/mnt/extraspace/gravityls_3/S8z/Cls/all_together_{}_{}_newbin_newnoise'.format(wltype, nside)
+os.makedirs(output_folder, exist_ok=True)
 
 ##############################################################################
 ############################## Set Binning ###################################
@@ -40,20 +46,11 @@ else:
 # The ells_lim_bpw
 ells = np.arange(3 * nside)
 ells_lim_bpw= np.array([0, 30, 60, 90, 120, 150, 180, 210, 240, 272, 309, 351, 398, 452, 513, 582, 661, 750, 852, 967, 1098, 1247, 1416, 1608, 1826, 2073, 2354, 2673, 3035, 3446, 3914, 4444, 5047, 5731, 6508, 7390, 8392, 9529, 10821, 12288])
-ells_lim_bpw = ells_lim_bpw[ells_lim_bpw <= ells[-1] + 1]
-bpws = np.zeros(ells.shape)
-weights = np.zeros(ells.shape)
+ells_lim_bpw = ells_lim_bpw[ells_lim_bpw <= 3 * nside] # 3*nside == ells[-1] + 1
+if 3*nside not in ells_lim_bpw: # Exhaust lmax --> gives same result as previous method, but adds 1 bpw (not for 4096)
+    ells_lim_bpw = np.append(ells_lim_bpw, 3*nside)
+b = nmt.NmtBin.from_edges(ells_lim_bpw[:-1], ells_lim_bpw[1:])
 
-li = 0
-for i, lf in enumerate(ells_lim_bpw[1:]):
-    # lf += 1
-    bpws[li : lf] = i
-    weights[li : lf] += 1./weights[li : lf].size
-    li = lf
-
-b = nmt.NmtBin(nside, bpws=bpws, ells=ells, weights=weights)
-
-print(b.get_effective_ells())
 fname = os.path.join(output_folder, 'l_bpw.txt')
 np.savetxt(fname, b.get_effective_ells())
 ##############################################################################
@@ -71,6 +68,8 @@ des_mask_path = os.path.join(des_data_folder, des_mask)
 # Read mask
 # mask_lss = hp.ud_grade(hp.read_map(des_mask_path, verbose=False), nside_out=2048)
 des_mask = hp.read_map(des_mask_path, verbose=False)
+des_mask_good = des_mask > gc_threshold  # Can be generalized to accept a different threshold
+des_mask[~des_mask_good] = 0
 # Read maps (gg)
 nmaps = 5
 des_maps = []
@@ -79,9 +78,9 @@ for i in range(nmaps):
     des_maps.append(hp.read_map(map_file))
 des_maps = np.array(des_maps)
 
-des_N_mean = des_maps.sum(axis=1) / des_mask.sum()
-des_maps_dg = des_maps / (des_N_mean[:, None] * des_mask) - 1
-des_maps_dg[np.isnan(des_maps_dg)] = 0.
+des_N_mean = des_maps[:, des_mask_good].sum(axis=1) / des_mask[des_mask_good].sum()
+des_maps_dg = np.zeros(des_maps.shape)
+des_maps_dg[:, des_mask_good] = des_maps[:, des_mask_good] / (des_N_mean[:, None] * des_mask[des_mask_good]) - 1
 
 # ###### Test ######
 #
@@ -100,30 +99,37 @@ des_maps_dg[np.isnan(des_maps_dg)] = 0.
 des_folder_gwl = 'des_shear'
 des_data_folder_gwl = os.path.join(data_folder, des_folder_gwl)
 des_mask_gwl = []
-des_maps_we1 = []
-des_maps_we2 = []
-des_maps_wopm = []
+des_maps_e1 = []
+des_maps_e2 = []
+des_opm_mean = []
 for i in range(4):
-    fname = os.path.join(des_data_folder_gwl, 'map_metacal_bin{}_counts_w_ns{}.fits'.format(i, nside))
-    des_mask_gwl.append(hp.read_map(fname))
-    fname = os.path.join(des_data_folder_gwl, 'map_metacal_bin{}_counts_e1_ns{}.fits'.format(i, nside))
-    des_maps_we1.append(hp.read_map(fname))
-    fname = os.path.join(des_data_folder_gwl, 'map_metacal_bin{}_counts_e2_ns{}.fits'.format(i, nside))
-    des_maps_we2.append(hp.read_map(fname))
-    fname = os.path.join(des_data_folder_gwl, 'map_metacal_bin{}_counts_opm_ns{}.fits'.format(i, nside))
-    des_maps_wopm.append(hp.read_map(fname))
+    fname = os.path.join(des_data_folder_gwl, 'map_{}_bin{}_counts_w_ns{}.fits'.format(wltype, i, nside))
+    mask_gwl = hp.read_map(fname)
+    fname = os.path.join(des_data_folder_gwl, 'map_{}_bin{}_counts_e1_ns{}.fits'.format(wltype, i, nside))
+    map_we1 = hp.read_map(fname)
+    fname = os.path.join(des_data_folder_gwl, 'map_{}_bin{}_counts_e2_ns{}.fits'.format(wltype, i, nside))
+    map_we2 = hp.read_map(fname)
+    fname = os.path.join(des_data_folder_gwl, 'map_{}_bin{}_counts_opm_ns{}.fits'.format(wltype, i, nside))
+    map_wopm = hp.read_map(fname)
+
+    mask_good = mask_gwl > 0.
+    mask_gwl[~mask_good] = 0.
+    opm_mean = np.sum(map_wopm[mask_good])/np.sum(mask_gwl[mask_good])
+
+    map_e1 = np.zeros_like(map_we1)
+    map_e2 = np.zeros_like(map_we2)
+    map_e1[mask_good] = (map_we1[mask_good]/mask_gwl[mask_good] - (map_we1[mask_good].sum()/mask_gwl[mask_good].sum())) / opm_mean
+    map_e2[mask_good] = (map_we2[mask_good]/mask_gwl[mask_good] - (map_we2[mask_good].sum()/mask_gwl[mask_good].sum())) / opm_mean
+
+    des_mask_gwl.append(mask_gwl)
+    des_maps_e1.append(map_e1)
+    des_maps_e2.append(map_e2)
+    des_opm_mean.append(opm_mean)
 
 des_mask_gwl = np.array(des_mask_gwl)
-des_maps_we1 = np.array(des_maps_we1)
-des_maps_we2 = np.array(des_maps_we2)
-des_maps_wopm = np.array(des_maps_wopm)
-
-des_opm_mean = des_maps_wopm.sum(axis=1)/des_mask_gwl.sum(axis=1)
-
-des_maps_e1 = (des_maps_we1/des_mask_gwl - (des_maps_we1.sum(axis=1)/des_mask_gwl.sum(axis=1))[:,None]) / des_opm_mean[:, None]
-des_maps_e2 = (des_maps_we2/des_mask_gwl - (des_maps_we2.sum(axis=1)/des_mask_gwl.sum(axis=1))[:,None]) / des_opm_mean[:, None]
-des_maps_e1[np.isnan(des_maps_e1)] = 0.
-des_maps_e2[np.isnan(des_maps_e2)] = 0.
+des_maps_e1 = np.array(des_maps_e1)
+des_maps_e2 = np.array(des_maps_e2)
+des_opm_mean = np.array(des_opm_mean)
 
 ###### Test ######
 
@@ -141,10 +147,17 @@ des_maps_e2[np.isnan(des_maps_e2)] = 0.
 
 planck_folder = 'planck_lensing'
 planck_data_folder = os.path.join(data_folder, planck_folder)
-fname = os.path.join(planck_data_folder, 'mask_ns{}.fits'.format(nside))
-planck_mask = hp.read_map(fname)
-fname = os.path.join(planck_data_folder, 'map_kappa_ns{}.fits'.format(nside))
-planck_map_kappa = hp.read_map(fname)
+
+if nside in [2048, 4096]:
+    fname = os.path.join(planck_data_folder, 'mask_ns{}.fits'.format(nside))
+    planck_mask = hp.read_map(fname)
+    fname = os.path.join(planck_data_folder, 'map_kappa_ns{}.fits'.format(nside))
+    planck_map_kappa = hp.read_map(fname)
+else:
+    fname = os.path.join(planck_data_folder, 'mask_ns{}.fits'.format(4096))
+    planck_mask = hp.ud_grade(hp.read_map(fname), nside_out=nside)
+    fname = os.path.join(planck_data_folder, 'map_kappa_ns{}.fits'.format(4096))
+    planck_map_kappa = hp.ud_grade(hp.read_map(fname), nside_out=nside)
 
 ##############################################################################
 ########################## Putting all together ##############################
@@ -218,33 +231,33 @@ for i in range(len(maps)):
 ##############################################################################
 # Generate covariance workspaces
 ##############################################################################
-cl_indices = []
-nmaps = len(maps)
-for i in range(nmaps):
-    for j in range(i, nmaps):
-        cl_indices.append([i, j])
-
-cov_indices = []
-for i, clij in enumerate(cl_indices):
-    for j, clkl in enumerate(cl_indices[i:]):
-        cov_indices.append(cl_indices[i] + cl_indices[i + j])
-
-for indices in cov_indices:
-    i, j, k, l = indices
-    mask1 = masks[i]
-    mask2 = masks[j]
-    mask3 = masks[k]
-    mask4 = masks[l]
-    fname = os.path.join(output_folder, 'cw{}{}{}{}.dat'.format(mask1, mask2, mask3, mask4))
-    sys.stdout.write('cw{}{}{}{}.dat\n'.format(mask1, mask2, mask3, mask4))
-    if not os.path.isfile(fname):
-        cw = nmt.NmtCovarianceWorkspace()
-        f1 = fields[i]
-        f2 = fields[j]
-        f3 = fields[k]
-        f4 = fields[l]
-        cw.compute_coupling_coefficients(f1, f2, f3, f4)
-        cw.write_to(fname)
+# cl_indices = []
+# nmaps = len(maps)
+# for i in range(nmaps):
+#     for j in range(i, nmaps):
+#         cl_indices.append([i, j])
+# 
+# cov_indices = []
+# for i, clij in enumerate(cl_indices):
+#     for j, clkl in enumerate(cl_indices[i:]):
+#         cov_indices.append(cl_indices[i] + cl_indices[i + j])
+# 
+# for indices in cov_indices:
+#     i, j, k, l = indices
+#     mask1 = masks[i]
+#     mask2 = masks[j]
+#     mask3 = masks[k]
+#     mask4 = masks[l]
+#     fname = os.path.join(output_folder, 'cw{}{}{}{}.dat'.format(mask1, mask2, mask3, mask4))
+#     sys.stdout.write('cw{}{}{}{}.dat\n'.format(mask1, mask2, mask3, mask4))
+#     if not os.path.isfile(fname):
+#         cw = nmt.NmtCovarianceWorkspace()
+#         f1 = fields[i]
+#         f2 = fields[j]
+#         f3 = fields[k]
+#         f4 = fields[l]
+#         cw.compute_coupling_coefficients(f1, f2, f3, f4)
+#         cw.write_to(fname)
 
 ##############################################################################
 # Compute Cls
@@ -347,7 +360,8 @@ else:
 
 # Compute DES shear noise
 
-des_wl_noise_file = os.path.join(output_folder, "des_sh_metacal_rot0-10_noise_ns{}.npz".format(nside))
+des_wl_noise_file = os.path.join(output_folder, "des_sh_{}_noise_ns{}.npz".format(wltype, nside))
+fname_rots = os.path.join(output_folder, "des_sh_{}_rot0-10_noise_ns{}.npz".format(wltype, nside))
 if os.path.isfile(des_wl_noise_file):
     N_wl = np.load(des_wl_noise_file)['cls']
     for ibin, N_wli in enumerate(N_wl):
@@ -355,41 +369,53 @@ if os.path.isfile(des_wl_noise_file):
         cl_matrix[index_bin : index_bin + 2, index_bin : index_bin + 2] -= N_wli
 else:
     N_wl = []
-    for ibin in range(len(des_maps_we1)):
-        rotated_cls = []
+    N_wl_raw = []
+    N_wl_rot = []
+    for ibin in range(len(des_maps_e1)):
+        # rotated_cls = []
         ws = nmt.NmtWorkspace()
         fname = os.path.join(output_folder, 'w22_{}{}.dat'.format(1 + ibin, 1 + ibin))
         ws.read_from(fname)
-
-        for irot in range(10):
-            map_file_e1 = os.path.join(des_data_folder_gwl, 'map_metacal_bin{}_rot{}_counts_e1_ns{}.fits'.format(ibin, irot, nside))
-            map_file_e2 = os.path.join(des_data_folder_gwl, 'map_metacal_bin{}_rot{}_counts_e2_ns{}.fits'.format(ibin, irot, nside))
-
-            map_we1 = hp.read_map(map_file_e1)
-            map_we2 = hp.read_map(map_file_e2)
-
-            map_e1 = (map_we1/des_mask_gwl[ibin] - (map_we1.sum()/des_mask_gwl[ibin].sum())) / des_opm_mean[ibin]
-            map_e2 = (map_we2/des_mask_gwl[ibin] - (map_we2.sum()/des_mask_gwl[ibin].sum())) / des_opm_mean[ibin]
-            map_e1[np.isnan(map_e1)] = 0.
-            map_e2[np.isnan(map_e2)] = 0.
-
-            sq = map_e1
-            su = -map_e2
-            f = nmt.NmtField(des_mask_gwl[ibin], [sq, su])
-
-            cls = ws.decouple_cell(nmt.compute_coupled_cell(f, f)).reshape((2, 2, -1))
-            rotated_cls.append(cls)
-
-        N_wl.append(np.mean(rotated_cls, axis=0))
+        
+        # Analytical
+        nlee = nlbb = co.get_shear_noise(ibin, wltype, nside)
+        nleb = nlbe = 0 * nlee
+        N_wl_raw.append(np.array([[nlee, nleb],[nlbe, nlbb]]))
+        N_wl.append(ws.decouple_cell([nlee, nleb, nlbe, nlbb]).reshape((2, 2, -1)))
 
         index_bin = len(des_maps) + 2 * ibin
         cl_matrix[index_bin : index_bin + 2, index_bin : index_bin + 2] -= N_wl[-1]
 
+        # Rotated galaxies for crosscheck
+        N_wl_rot.append(co.get_shear_noise_rot(ibin, wltype, nside, nrot=10,
+                        mask=des_mask_gwl[ibin], opm_mean=des_opm_mean[ibin], ws=ws))
+
+    # Save noise from analytical exp
+    noise_factor = np.mean(des_mask_gwl ** 2, axis=1)
     np.savez(des_wl_noise_file,
-             l=b.get_effective_ells(), cls=N_wl)
+             l=b.get_effective_ells(), cls=N_wl, cls_raw=N_wl_raw, noise_factor=noise_factor,
+             cls_cov = np.array(N_wl_raw)/noise_factor[:, None, None, None])
+
+    # Save noise from rotated galaxies
+    np.savez(fname_rots,
+             l=b.get_effective_ells(), cls=N_wl_rot)
 
 np.savez(os.path.join(output_folder, "cl_all_no_noise"),
          l=b.get_effective_ells(), cls=cl_matrix)
+
+# Noise from rotated galaxies for crosscheck
+if not os.path.isfile(fname_rots):
+    N_wl_rot = []
+    for ibin in range(len(des_maps_e1)):
+        ws = nmt.NmtWorkspace()
+        fname = os.path.join(output_folder, 'w22_{}{}.dat'.format(1 + ibin, 1 + ibin))
+        ws.read_from(fname)
+        N_wl_rot.append(co.get_shear_noise_rot(ibin, wltype, nside, nrot=10,
+                        mask=des_mask_gwl[ibin], opm_mean=des_opm_mean[ibin], ws=ws))
+    np.savez(fname_rots,
+             l=b.get_effective_ells(), cls=N_wl_rot)
+#### End noise
+
 
 # Split cls in files
 bins = [0, 1, 2, 3, 4] + [5, 5] + [6, 6] + [7, 7] + [8, 8] + [9]

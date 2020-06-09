@@ -1,7 +1,68 @@
 #!/usr/bin/python
+import healpy as hp
 import numpy as np
+import pymaster as nmt
 import os
 
+def get_shear_noise(ibin, wltype, nside, survey='des'):
+    if survey == 'des':
+        root = '/mnt/extraspace/gravityls_3/S8z/data/derived_products/des_shear/'
+    else:
+        raise ValueError('The only implemented survey is DES. Requested: ', survey)
+
+    fname = root + 'map_{}_bin{}_counts_w2e12_ns{}.fits'.format(wltype, ibin, nside)
+    w2e12 = hp.read_map(fname)
+
+    fname = root + 'map_{}_bin{}_counts_w2e22_ns{}.fits'.format(wltype, ibin, nside)
+    w2e22 = hp.read_map(fname)
+
+    # Area_pixel * <1/2 * (w^2 e_1^2 + w^2 e_2^2)>_pixels
+    Nell = np.ones(3 * nside) * hp.nside2pixarea(nside) * np.mean(0.5 * ( w2e12 + w2e22 ))
+
+    return Nell
+
+def get_shear_noise_rot(ibin, wltype, nside, nrot=10, survey='des', mask=None, opm_mean=None, ws=None):
+    if survey == 'des':
+        root = '/mnt/extraspace/damonge/S8z_data/derived_products/des_shear/'
+    else:
+        raise ValueError('The only implemented survey is DES. Requested: ', survey)
+
+    if mask is None:
+        fname = root + 'map_{}_bin{}_counts_w_ns{}.fits'.format(wltype, ibin, nside)
+        mask = hp.read_map(fname)
+    if opm_mean is None:
+        fname = root + 'map_{}_bin{}_counts_opm_ns{}.fits'.format(wltype, ibin, nside)
+        opm_mean = hp.read_map(fname).sum() / mask.sum()
+    if ws is None:
+        fname = '/mnt/extraspace/gravityls_3/S8z/Cls/all_together_{}_{}_newbin_newnoise/'.format(wltype, nside)
+        fname += 'w22_{}{}.dat'.format(1 + ibin, 1 + ibin)
+        if not os.path.isfile(fname):
+            raise ValueError('Workspace not found at {}'.format(fname))
+        ws = nmt.NmtWorkspace()
+        ws.read_from(fname)
+
+    nbpw = ws.get_bandpower_windows().shape[1]
+    cls = np.zeros((2, 2, nbpw))
+    for irot in range(nrot):
+        map_file_e1 = os.path.join(root, 'map_{}_bin{}_rot{}_counts_e1_ns{}.fits'.format(wltype, ibin, irot, nside))
+        map_file_e2 = os.path.join(root, 'map_{}_bin{}_rot{}_counts_e2_ns{}.fits'.format(wltype, ibin, irot, nside))
+
+        map_we1 = hp.read_map(map_file_e1)
+        map_we2 = hp.read_map(map_file_e2)
+
+        map_e1 = (map_we1/mask - (map_we1.sum()/mask.sum())) / opm_mean
+        map_e2 = (map_we2/mask - (map_we2.sum()/mask.sum())) / opm_mean
+        map_e1[np.isnan(map_e1)] = 0.
+        map_e2[np.isnan(map_e2)] = 0.
+
+        sq = map_e1
+        su = -map_e2
+        f = nmt.NmtField(mask, [sq, su])
+
+        cls += ws.decouple_cell(nmt.compute_coupled_cell(f, f)).reshape((2, 2, -1))
+
+    return cls / nrot
+    
 def get_tracer_name(ibin):
     if ibin in np.arange(5):
         name = 'DESgc{}'.format(ibin)
