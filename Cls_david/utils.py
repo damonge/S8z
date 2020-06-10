@@ -40,21 +40,33 @@ class Field(object):
                 return self.make_field(i_field)
 
     def get_nl_coupled(self):
-        if self.type != 'gc':
-            raise ValueError("This is not a galaxy clustering tracer")
-        msk  = hp.read_map(self.fname_msk, verbose=False)
-        self._check_size(msk)
-        nc = hp.read_map(self.get_path(self.config_h['wcounts']), verbose=False)
-        self._check_size(nc)
-        msk_good = msk > self.config['mask_cut_gc']            
-        msk[~msk_good] = 0
-        nmean = np.sum(nc[msk_good]) / np.sum(msk[msk_good])
-        ndens = nmean * self.npix / (4*np.pi)
-        return np.ones(3*self.nside) * np.mean(msk) / ndens
+        if self.type == 'gc':
+            msk  = hp.read_map(self.fname_msk, verbose=False)
+            self._check_size(msk)
+            nc = hp.read_map(self.get_path(self.config_h['wcounts']), verbose=False)
+            self._check_size(nc)
+            msk_good = msk > self.config['mask_cut_gc']
+            msk[~msk_good] = 0
+            nmean = np.sum(nc[msk_good]) / np.sum(msk[msk_good])
+            ndens = nmean * self.npix / (4*np.pi)
+            return [np.ones(3*self.nside) * np.mean(msk) / ndens]
+        elif self.type == 'sh':
+            msk = hp.read_map(self.fname_msk, verbose=False)
+            self._check_size(msk)
+            ip_bad = msk <= 0
+
+            sums = np.load(self.get_path(self.config_h['sums']))
+            w2s2mean = sums['w2s2'] / self.npix
+            opm_mean = sums['wopm'] / sums['w']
+
+            # N_l
+            pix_area = 4*np.pi/self.npix
+            nl_c = np.ones(3*self.nside)*pix_area*w2s2mean/opm_mean**2
+            return [nl_c, 0*nl_c, 0*nl_c, nl_c]
 
     def make_field(self, i_field=None):
         if self.type == 'gc':
-            msk  = hp.read_map(self.fname_msk, verbose=False)
+            msk = hp.read_map(self.fname_msk, verbose=False)
             self._check_size(msk)
             nc = hp.read_map(self.get_path(self.config_h['wcounts']), verbose=False)
             self._check_size(nc)
@@ -71,26 +83,21 @@ class Field(object):
                 mid = ''
             msk  = hp.read_map(self.fname_msk, verbose=False) 
             self._check_size(msk)
-            e1 = hp.read_map(self.get_path(self.config_h['prefix'] + mid +
-                                            'counts_e1_ns%d.fits' % self.nside ),
+            we1 = hp.read_map(self.get_path(self.config_h['prefix'] + mid +
+                                            'we1_ns%d.fits' % self.nside ),
                               verbose=False)
-            self._check_size(e1)
-            e2 = hp.read_map(self.get_path(self.config_h['prefix'] + mid +
-                                           'counts_e2_ns%d.fits' % self.nside ),
+            self._check_size(we1)
+            we2 = hp.read_map(self.get_path(self.config_h['prefix'] + mid +
+                                            'we2_ns%d.fits' % self.nside ),
                               verbose=False)
-            self._check_size(e2)
-            opm = hp.read_map(self.get_path(self.config_h['prefix'] +
-                                            'counts_opm_ns%d.fits' % self.nside ),
-                              verbose=False)
-            self._check_size(opm)
+            self._check_size(we2)
+            sums = np.load(self.get_path(self.config_h['sums']))
             ip_good = msk > 0
-            opm_mean = np.sum(opm[ip_good]) / np.sum(msk[ip_good])
-            e1_mean = np.sum(e1[ip_good]) / np.sum(msk[ip_good])
-            e2_mean = np.sum(e2[ip_good]) / np.sum(msk[ip_good])
-            q = np.zeros_like(e1)
-            q[ip_good] = (e1[ip_good] / msk[ip_good] - e1_mean) / opm_mean
-            u = np.zeros_like(e2)
-            u[ip_good] = -(e2[ip_good] / msk[ip_good] - e2_mean) / opm_mean
+            opm_mean = sums['wopm'] / sums['w']
+            q = np.zeros_like(we1)
+            q[ip_good] = -we1[ip_good] / (msk[ip_good] * opm_mean)
+            u = np.zeros_like(we2)
+            u[ip_good] = we2[ip_good] / (msk[ip_good] * opm_mean)
             field = nmt.NmtField(msk, [q, u])
         return field
 
@@ -121,6 +128,7 @@ class Cell(object):
             raise ValueError("Input file is incompatible")
         self.c_ell = d['cl']
         self.n_ell = d['nl']
+        self.n_ell_analytic = d['nla']
 
     def compute_spectra(self, fields, save=True):
         if os.path.isfile(self.get_output_prefix()+'.npz') and (not self.recompute):
@@ -128,12 +136,14 @@ class Cell(object):
         else:
             self.get_workspace(fields)
             self.c_ell = self.get_cl(fields)
-            self.n_ell = self.get_nl(fields)
+            self.n_ell = self.get_nl(fields, use_analytic=True)
+            self.n_ell_analytic = self.get_nl(fields, use_analytic=True)
             if save:
                 np.savez(self.get_output_prefix(),
                          ell=self.ells,
                          cl=self.c_ell,
-                         nl=self.n_ell)
+                         nl=self.n_ell,
+                         nla=self.n_ell_analytic)
 
     def get_output_prefix(self):
         return os.path.join(self.config['predir_out'],
@@ -167,25 +177,28 @@ class Cell(object):
                                                       fields[self.tracers[1]].get_field()))
         return cl
 
-    def get_nl(self, fields, i_field=None):
+    def get_nl(self, fields, i_field=None, use_analytic=False):
         if fields[self.tracers[0]].name != fields[self.tracers[1]].name:
             return np.zeros(self.shape)
 
         f = fields[self.tracers[0]]
         w = self.get_workspace(fields)
         if f.type == 'gc':
-            nl = w.decouple_cell([f.get_nl_coupled()])
+            nl = w.decouple_cell(f.get_nl_coupled())
         elif f.type == 'sh':
-            cls = []
-            for irot in range(f.config_h['nrot']):
-                print(" - %d-th/%d rotation" % (irot, f.config_h['nrot']))
-                try:
-                    f_nmt = f.get_field(irot)
-                    cl = w.decouple_cell(nmt.compute_coupled_cell(f_nmt, f_nmt))
-                    cls.append(cl)
-                except:
-                    print("File not found. Oh well...")
-            cls = np.array(cls)
-            nl = np.mean(cls, axis=0)
+            if use_analytic:
+                nl = w.decouple_cell(f.get_nl_coupled())
+            else:
+                cls = []
+                for irot in range(f.config_h['nrot']):
+                    print(" - %d-th/%d rotation" % (irot, f.config_h['nrot']))
+                    try:
+                        f_nmt = f.get_field(irot)
+                        cl = w.decouple_cell(nmt.compute_coupled_cell(f_nmt, f_nmt))
+                        cls.append(cl)
+                    except:
+                        print("File not found. Oh well...")
+                cls = np.array(cls)
+                nl = np.mean(cls, axis=0)
 
         return nl

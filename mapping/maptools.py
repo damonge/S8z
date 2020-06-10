@@ -26,6 +26,58 @@ def get_fits_iterator(fname, colnames, hdu=1, nrows_per_chunk=None):
                                 rows=range(start, end))
         yield data
 
+
+def get_weighted_sums(iterator, name_weight, names_field,
+                      masks=None):
+    if masks is None:
+        nmaps = 1
+        masks = [[['all']]]
+    else:
+        nmaps = len(masks)
+
+    counts = np.zeros(nmaps)
+    if name_weight is not None:
+        weights = np.zeros(nmaps)
+    else:
+        weights = None
+    if names_field is not None:
+        nfields = len(names_field)
+        fields = np.zeros([nmaps, nfields])
+
+    for i_d, d in enumerate(iterator):
+        for im, mm in enumerate(masks):
+            mask = np.ones(len(d['ra']), dtype=bool)
+            print(len(mask))
+            for m in mm:
+                if m[0] == 'tag':
+                    mask = mask & (d[m[1]] == m[2])
+                elif m[0] == 'range':
+                    mask = mask & (d[m[1]] < m[3]) & (d[m[1]] >= m[2])
+
+            counts[im] += np.sum(mask)
+
+            if name_weight is not None:
+                w = d[name_weight][mask]
+                weights[im] += np.sum(w)
+                if names_field is not None:
+                    for i_f, n_f in enumerate(names_field):
+                        f = d[n_f][mask]
+                        fields[im, i_f] += np.sum(w * f)
+            else:
+                if names_field is not None:
+                    for i_f, n_f in enumerate(names_field):
+                        f = d[n_f][mask]
+                        fields[im, i_f] += np.sum(f)
+
+    if nmaps == 1:
+        counts = counts[0]
+        if weights is not None:
+            weights = weights[0]
+        if fields is not None:
+            fields = fields[0]
+    return counts, weights, fields
+
+
 def get_weighted_maps(iterator, nside, name_ra, name_dec,
                       name_weight=None, names_field=None,
                       masks=None):
@@ -93,6 +145,7 @@ def get_weighted_maps(iterator, nside, name_ra, name_dec,
 
     return map_counts, map_weights, map_field
 
+
 def rotate_alm_g_c(alm_in, c2g=False):
     if c2g:
         coord=['C','G']
@@ -101,6 +154,7 @@ def rotate_alm_g_c(alm_in, c2g=False):
 
     r=hp.Rotator(coord=coord)
     return r.rotate_alm(alm_in)
+
 
 def rotate_map_g_c(map_in, c2g=False):
     ns = hp.npix2nside(len(map_in))
