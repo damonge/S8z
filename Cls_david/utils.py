@@ -19,6 +19,44 @@ class Field(object):
         if len(m) != self.npix:
             raise ValueError("Inconsistent map %d %d", len(m), self.npix)
 
+    def get_systematic_map(self, name, return_mask=False):
+        if self.type == 'gc':
+            m = hp.read_map(self.get_path(self.config_h['systematics'][name]['file']),
+                            verbose=False)
+            self._check_size(m)
+            msk = hp.read_map(self.fname_msk, verbose=False)
+            self._check_size(msk)
+            msk_good = msk > self.config['mask_cut_gc']
+            msk[~msk_good] = 0
+            m_mean = np.sum(msk*m)/np.sum(msk)
+            m[msk_good] = m[msk_good] - m_mean
+            m[~msk_good] = 0
+            mp = [m]
+        elif self.type == 'sh':
+            msk  = hp.read_map(self.fname_msk, verbose=False) 
+            self._check_size(msk)
+            we1 = hp.read_map(self.get_path(self.config_h['prefix'] + 'w'
+                                            + self.config_h['systematics'][name]['file'] +
+                                            'e1_ns%d.fits' % self.nside ),
+                              verbose=False)
+            self._check_size(we1)
+            we2 = hp.read_map(self.get_path(self.config_h['prefix'] + 'w'
+                                            + self.config_h['systematics'][name]['file'] +
+                                            'e2_ns%d.fits' % self.nside ),
+                              verbose=False)
+            self._check_size(we2)
+            ip_good = msk > 0
+            q = np.zeros_like(we1)
+            q[ip_good] = -we1[ip_good] / msk[ip_good]
+            u = np.zeros_like(we2)
+            u[ip_good] = we2[ip_good] / msk[ip_good]
+            mp = [q, u]
+
+        if return_mask:
+            return mp, msk
+        else:
+            return mp
+
     def get_spin(self):
         if self.type == 'gc':
             return 0
@@ -87,18 +125,22 @@ class Field(object):
             nl_c = np.ones(3*self.nside)*pix_area*w2s2mean/opm_mean**2
             return np.array([nl_c, 0*nl_c, 0*nl_c, nl_c])
 
+    def get_systematic_field(self, name):
+        mp, msk = self.get_systematic_map(name, return_mask=True)
+        return nmt.NmtField(msk, mp, n_iter=self.config['n_iter'])
+
     def make_field(self, i_field=None):
         if self.type == 'gc':
             msk = hp.read_map(self.fname_msk, verbose=False)
             self._check_size(msk)
             nc = hp.read_map(self.get_path(self.config_h['wcounts']), verbose=False)
             self._check_size(nc)
-            msk_good = msk > self.config['mask_cut_gc']            
+            msk_good = msk > self.config['mask_cut_gc']
             msk[~msk_good] = 0
             nmean = np.sum(nc[msk_good]) / np.sum(msk[msk_good])
             delta = np.zeros_like(msk)
             delta[msk_good] = nc[msk_good] / (nmean * msk[msk_good]) - 1
-            field = nmt.NmtField(msk, [delta], n_iter=self.config['n_iter'])
+            mp = [delta]
         elif self.type == 'sh':
             if i_field is not None:
                 mid = 'rot%d_' % i_field
@@ -121,7 +163,20 @@ class Field(object):
             q[ip_good] = -we1[ip_good] / (msk[ip_good] * opm_mean)
             u = np.zeros_like(we2)
             u[ip_good] = we2[ip_good] / (msk[ip_good] * opm_mean)
-            field = nmt.NmtField(msk, [q, u])
+            mp = [q, u]
+
+        if 'systematics' in self.config_h:
+            temp = []
+            for n, d in self.config_h['systematics'].items():
+                if d.get('deproject', False):
+                    temp.append(self.get_systematic_map(n, return_mask=False))
+            if len(temp) == 0:
+                temp = None
+        else:
+            temp = None
+
+        field = nmt.NmtField(msk, mp, templates=temp,
+                             n_iter=self.config['n_iter'])
         return field
 
 
@@ -201,6 +256,10 @@ class Cell(object):
         self.c_ell = d['cl']
         self.n_ell = d['nl']
         self.n_ell_analytic = d['nla']
+        self.c_ell_sys = {}
+        for k in d.keys():
+            if k.startswith('cl_sys'):
+                self.c_ell_sys[k[6:]] = d[k]
 
     def compute_spectra(self, fields, save=True):
         if os.path.isfile(self.get_output_prefix()+'.npz') and (not self.recompute):
@@ -210,12 +269,16 @@ class Cell(object):
             self.c_ell = self.get_cl(fields)
             self.n_ell = self.get_nl(fields)
             self.n_ell_analytic = self.get_nl(fields, use_analytic=True)
+            self.c_ell_sys = self.get_xsys(fields)
             if save:
+                save_data = {'ell': self.ells,
+                             'cl': self.c_ell,
+                             'nl':self.n_ell,
+                             'nla': self.n_ell_analytic}
+                for n, c in self.c_ell_sys.items():
+                    save_data['cl_sys_' + n] = c
                 np.savez(self.get_output_prefix(),
-                         ell=self.ells,
-                         cl=self.c_ell,
-                         nl=self.n_ell,
-                         nla=self.n_ell_analytic)
+                         **save_data)
 
     def get_output_prefix(self):
         return os.path.join(self.config['predir_out'],
@@ -249,7 +312,23 @@ class Cell(object):
                                                       fields[self.tracers[1]].get_field()))
         return cl
 
-    def get_nl(self, fields, i_field=None, use_analytic=False):
+    def get_xsys(self, fields):
+        if fields[self.tracers[0]].name != fields[self.tracers[1]].name:
+            return {}
+
+        xsys = {}
+        f = fields[self.tracers[0]]
+        if 'systematics' in f.config_h:
+            fl1 = f.get_field()
+            w = self.get_workspace(fields)
+            for n, d in f.config_h['systematics'].items():
+                if d['xcorr']:
+                    fl2 = f.get_systematic_field(n)
+                    cl = w.decouple_cell(nmt.compute_coupled_cell(fl1, fl2))
+                    xsys[n]=cl
+        return xsys
+
+    def get_nl(self, fields, use_analytic=False):
         if fields[self.tracers[0]].name != fields[self.tracers[1]].name:
             return np.zeros(self.shape)
 

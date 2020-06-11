@@ -1,18 +1,18 @@
-mask_cut_gc: 0.
+mask_cut_gc: 0.5
 nside: 512
 n_iter: 3
 predir_in: '/mnt/extraspace/damonge/S8z_data/derived_products/'
-predir_out: '/mnt/extraspace/damonge/S8z_data/derived_products/Cls_metacal_c'
+predir_out: '/mnt/extraspace/damonge/S8z_data/derived_products/Cls_im3shape_d'
 bpw_edges: [0, 30, 60, 90, 120, 150, 180, 210, 240, 272, 309, 351, 398, 452, 513, 582, 661, 750, 852, 967, 1098, 1247, 1416, 1608, 1826, 2073, 2354, 2673, 3035, 3446, 3914, 4444, 5047, 5731, 6508, 7390, 8392, 9529, 10821, 12288]
 recompute: False
 
 masks:
   gc: des_clustering/mask_ns512.fits
-  sh0: des_shear/map_metacal_bin0_w_ns512.fits
-  sh1: des_shear/map_metacal_bin1_w_ns512.fits
-  sh2: des_shear/map_metacal_bin2_w_ns512.fits
-  sh3: des_shear/map_metacal_bin3_w_ns512.fits
-  sh4: des_shear/map_metacal_bin4_w_ns512.fits
+  sh0: des_shear/map_im3shape_bin0_w_ns512.fits
+  sh1: des_shear/map_im3shape_bin1_w_ns512.fits
+  sh2: des_shear/map_im3shape_bin2_w_ns512.fits
+  sh3: des_shear/map_im3shape_bin3_w_ns512.fits
+  sh4: des_shear/map_im3shape_bin4_w_ns512.fits
 
 maps:
   gc0:
@@ -48,31 +48,51 @@ maps:
   sh0:
     mask: 'sh0'
     type: 'sh'
-    prefix: 'des_shear/map_metacal_bin0_'
-    sums: 'des_shear/sums_metacal_bin0.npz'
+    prefix: 'des_shear/map_im3shape_bin0_'
+    sums: 'des_shear/sums_im3shape_bin0.npz'
     nrot: 30
-    dndz: 'des_shear/dndz_metacal_bin0.txt'
+    dndz: 'des_shear/dndz_im3shape_bin0.txt'
+    systematics:
+      psf:
+        file: 'psf'
+        deproject: False
+        xcorr: True
   sh1:
     mask: 'sh1'
     type: 'sh'
-    prefix: 'des_shear/map_metacal_bin1_'
-    sums: 'des_shear/sums_metacal_bin1.npz'
+    prefix: 'des_shear/map_im3shape_bin1_'
+    sums: 'des_shear/sums_im3shape_bin1.npz'
     nrot: 30
-    dndz: 'des_shear/dndz_metacal_bin1.txt'
+    dndz: 'des_shear/dndz_im3shape_bin1.txt'
+    systematics:
+      psf:
+        file: 'psf'
+        deproject: False
+        xcorr: True
   sh2:
     mask: 'sh2'
     type: 'sh'
-    prefix: 'des_shear/map_metacal_bin2_'
-    sums: 'des_shear/sums_metacal_bin2.npz'
+    prefix: 'des_shear/map_im3shape_bin2_'
+    sums: 'des_shear/sums_im3shape_bin2.npz'
     nrot: 30
-    dndz: 'des_shear/dndz_metacal_bin2.txt'
+    dndz: 'des_shear/dndz_im3shape_bin2.txt'
+    systematics:
+      psf:
+        file: 'psf'
+        deproject: False
+        xcorr: True
   sh3:
     mask: 'sh3'
     type: 'sh'
-    prefix: 'des_shear/map_metacal_bin3_'
-    sums: 'des_shear/sums_metacal_bin3.npz'
+    prefix: 'des_shear/map_im3shape_bin3_'
+    sums: 'des_shear/sums_im3shape_bin3.npz'
     nrot: 30
-    dndz: 'des_shear/dndz_metacal_bin3.txt'
+    dndz: 'des_shear/dndz_im3shape_bin3.txt'
+    systematics:
+      psf:
+        file: 'psf'
+        deproject: False
+        xcorr: True
 
 c_ells:
   - ['gc0', 'gc0']

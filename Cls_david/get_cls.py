@@ -49,7 +49,7 @@ for i1, m1 in enumerate(field_names):
         print(cell.name)
         cell.compute_spectra(fields)
         cls[cell.name] = cell
-
+exit(1)
 cosmo = ccl.Cosmology(Omega_c=0.25, Omega_b=0.05, h=0.67, n_s=0.96, sigma8=0.81)
 covs = {}
 for i1, cl1 in enumerate(p['c_ells']):
