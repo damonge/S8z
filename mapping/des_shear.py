@@ -67,8 +67,9 @@ print("Iterators")
 # Joint iterators
 def get_iterator_metacal(e1_mean, e2_mean):
     itr_cat = get_fits_iterator(predir_in + fname_cat,
-                                ['coadd_objects_id', 'e1', 'e2', 'R11', 'R22',
-                                 'ra', 'dec', 'flags_select'],
+                                ['coadd_objects_id', 'e1', 'e2',
+                                 'psf_e1', 'psf_e2', 'ra', 'dec',
+                                 'flags_select'],
                                 nrows_per_chunk=1000000)
     itr_bin = get_fits_iterator(predir_in + fname_binning,
                                 ['coadd_objects_id', 'zbin_mcal'],
@@ -89,6 +90,8 @@ def get_iterator_metacal(e1_mean, e2_mean):
             'dec':m['dec'],
             'e1':e1,
             'e2':e2,
+            'psf_e1':m['psf_e1'],
+            'psf_e2':m['psf_e2'],
             'sel':m['flags_select'],
             'w':np.ones(ngal),
             'bin':b['zbin_mcal']
@@ -124,8 +127,9 @@ def get_iterator_metacal_sums():
 
 def get_iterator_im3shap(e1_mean, e2_mean):
     itr_im3 = get_fits_iterator(predir_in + fname_cat,
-                                ['coadd_objects_id', 'e1', 'e2', 'm', 'c1', 'c2',
-                                 'weight', 'ra', 'dec', 'flags_select'],
+                                ['coadd_objects_id', 'e1', 'e2', 'c1', 'c2',
+                                 'psf_e1', 'psf_e2', 'weight', 'ra', 'dec',
+                                 'flags_select'],
                                 nrows_per_chunk=1000000)
     itr_bin = get_fits_iterator(predir_in + fname_binning,
                                 ['coadd_objects_id', 'zbin_im3'],
@@ -146,6 +150,8 @@ def get_iterator_im3shap(e1_mean, e2_mean):
             'dec':m['dec'],
             'e1':e1,
             'e2':e2,
+            'psf_e1':m['psf_e1'],
+            'psf_e2':m['psf_e2'],
             'sel':m['flags_select'],
             'w':m['weight'],
             'bin':b['zbin_im3']
@@ -229,7 +235,7 @@ else:
 
 nm, wm, fl = get_weighted_maps(itr, o.nside, 'ra', 'dec',
                                name_weight='w',
-                               names_field=['e1', 'e2'],
+                               names_field=['e1', 'e2', 'psf_e1', 'psf_e2'],
                                masks=masks)
 
 # Write output maps
@@ -239,6 +245,10 @@ hp.write_map(predir_out + "map_" + suffix + "_we1_ns%d.fits" % o.nside,
 hp.write_map(predir_out + "map_" + suffix + "_we2_ns%d.fits" % o.nside,
              fl[1], overwrite=True)
 if not o.rotate:
+    hp.write_map(predir_out + "map_" + suffix + "_wpsfe1_ns%d.fits" % o.nside,
+                 fl[2], overwrite=True)
+    hp.write_map(predir_out + "map_" + suffix + "_wpsfe2_ns%d.fits" % o.nside,
+                 fl[3], overwrite=True)
     hp.write_map(predir_out + "map_" + suffix + "_counts_ns%d.fits" % o.nside,
                  nm, overwrite=True)
     hp.write_map(predir_out + "map_" + suffix + "_w_ns%d.fits" % o.nside,
