@@ -2,6 +2,7 @@ import numpy as np
 import os
 import healpy as hp
 import pymaster as nmt
+import pyccl as ccl
 
 
 class Field(object):
@@ -28,6 +29,16 @@ class Field(object):
     def get_path(self, fn):
         return os.path.join(self.config['predir_in'], fn)
 
+    def get_ccl_tracer(self, cosmo):
+        _, z, _, nz = np.loadtxt(self.get_path(self.config_h['dndz']),
+                                 unpack=True)
+        if self.type == 'gc':
+            bz = np.ones_like(z) * self.config_h['bias']
+            tr = ccl.NumberCountsTracer(cosmo, False, (z, nz), (z, bz))
+        elif self.type == 'sh':
+            tr = ccl.WeakLensingTracer(cosmo, (z, nz))
+        return tr
+
     def get_field(self, i_field=None):
         if i_field is None:
             if not hasattr(self, 'field'):
@@ -39,6 +50,18 @@ class Field(object):
             elif self.type == 'sh':
                 return self.make_field(i_field)
 
+    def get_mask(self):
+        if self.type == 'gc':
+            msk  = hp.read_map(self.fname_msk, verbose=False)
+            self._check_size(msk)
+            msk_good = msk > self.config['mask_cut_gc']
+            msk[~msk_good] = 0
+            return msk
+        elif self.type == 'sh':
+            msk = hp.read_map(self.fname_msk, verbose=False)
+            self._check_size(msk)
+        return msk
+
     def get_nl_coupled(self):
         if self.type == 'gc':
             msk  = hp.read_map(self.fname_msk, verbose=False)
@@ -49,7 +72,7 @@ class Field(object):
             msk[~msk_good] = 0
             nmean = np.sum(nc[msk_good]) / np.sum(msk[msk_good])
             ndens = nmean * self.npix / (4*np.pi)
-            return [np.ones(3*self.nside) * np.mean(msk) / ndens]
+            return np.array([np.ones(3*self.nside) * np.mean(msk) / ndens])
         elif self.type == 'sh':
             msk = hp.read_map(self.fname_msk, verbose=False)
             self._check_size(msk)
@@ -62,7 +85,7 @@ class Field(object):
             # N_l
             pix_area = 4*np.pi/self.npix
             nl_c = np.ones(3*self.nside)*pix_area*w2s2mean/opm_mean**2
-            return [nl_c, 0*nl_c, 0*nl_c, nl_c]
+            return np.array([nl_c, 0*nl_c, 0*nl_c, nl_c])
 
     def make_field(self, i_field=None):
         if self.type == 'gc':
@@ -103,12 +126,12 @@ class Field(object):
 
 
 class Cell(object):
-    def __init__(self, d, config, bins):
+    def __init__(self, tracers, config, bins):
         spin_d = {'gc': 0, 'sh': 2}
         nmaps = [1, 2]
         self.config = config
-        self.tracers = d['tracers']
-        self.name = d['name']
+        self.tracers = tracers
+        self.name = tracers[0]+'_'+tracers[1]
         self.msks = [config['maps'][t]['mask']
                      for t in self.tracers]
         self.bins = bins
@@ -121,6 +144,55 @@ class Cell(object):
         self.nside = config['nside']
         self.npix = hp.nside2npix(self.nside)
         self.recompute = config['recompute']
+
+    def _get_l_arr_interp(self):
+        return np.unique(np.geomspace(2, 3*self.nside).astype(int)).astype(float)
+
+    def _get_cl_interpolated(self, cosmo, fields):
+        from scipy.interpolate import interp1d
+
+        lt = self._get_l_arr_interp()
+        t1 = fields[self.tracers[0]].get_ccl_tracer(cosmo)
+        t2 = fields[self.tracers[1]].get_ccl_tracer(cosmo)
+        clt = ccl.angular_cl(cosmo, t1, t2, lt)
+        cli = interp1d(np.log(lt), clt, fill_value=(0, clt[-1]), bounds_error=False)
+        l_out = np.arange(3*self.nside)
+        cl_out = np.zeros(3*self.nside)
+        cl_out[1:] = cli(np.log(l_out[1:]))
+        return cl_out
+
+    def get_cl_signal(self, cosmo, fields):
+        cl_th = np.zeros([self.ncls, 3*self.nside])
+        cl_th[0, :] = self._get_cl_interpolated(cosmo, fields)
+        return cl_th
+
+    def get_cl_theory(self, cosmo, fields, add_noise=True, return_decoupled=True):
+        w = self.get_workspace(fields)
+
+        # Compute coupled theory spectrum
+        clt = self.get_cl_signal(cosmo, fields)
+        # Sometimes the MCM won't go up to 3*nside
+        clt[:, :w.wsp.lmax+1] = w.couple_cell(clt)
+        clt[:, w.wsp.lmax:] = clt[:, w.wsp.lmax][:, None]
+
+        if add_noise:
+            # Compute coupled N_ell if needed
+            if self.tracers[0] == self.tracers[1]:
+                nl = fields[self.tracers[0]].get_nl_coupled()
+                clt += nl
+
+        # Decouple if needed (useful for plotting)
+        if return_decoupled:
+            clt = w.decouple_cell(clt)
+        else:  # Otherwise just divide by the mean mask product (useful for covariances)
+            msk1 = fields[self.tracers[0]].get_mask()
+            if self.tracers[0] == self.tracers[1]:
+                msk2 = msk1
+            else:
+                msk2 = fields[self.tracers[1]].get_mask()
+            maskprod_mean = np.mean(msk1*msk2)
+            clt /= maskprod_mean
+        return clt
 
     def load_spectra(self):
         d = np.load(self.get_output_prefix()+'.npz')
@@ -136,7 +208,7 @@ class Cell(object):
         else:
             self.get_workspace(fields)
             self.c_ell = self.get_cl(fields)
-            self.n_ell = self.get_nl(fields, use_analytic=True)
+            self.n_ell = self.get_nl(fields)
             self.n_ell_analytic = self.get_nl(fields, use_analytic=True)
             if save:
                 np.savez(self.get_output_prefix(),
@@ -202,3 +274,99 @@ class Cell(object):
                 nl = np.mean(cls, axis=0)
 
         return nl
+
+
+class Covar(object):
+    def __init__(self, d1, d2, config):
+        self.name = d1[0]+'_'+d1[1]+'_x_'+d2[0]+'_'+d2[1]
+        self.config = config
+        self.tracers_1 = d1
+        self.tracers_2 = d2
+        self.msks_1 = [config['maps'][t]['mask']
+                       for t in self.tracers_1]
+        self.msks_2 = [config['maps'][t]['mask']
+                       for t in self.tracers_2]
+        self.recompute = config['recompute']
+
+    def get_output_prefix(self):
+        return os.path.join(self.config['predir_out'],
+                            'cov_'+self.name)
+
+    def _get_workspace_file(self, m1, m2):
+        for order1 in [-1, 1]:
+            ms1 = m1[::order1]
+            st1 = ms1[0]+'_'+ms1[1]
+            for order2 in [-1, 1]:
+                ms2 = m2[::order1]
+                st2 = ms2[0]+'_'+ms2[1]
+                fname = os.path.join(self.config['predir_out'],
+                                     'cwsp_'+st1+'_'+st2+'.fits')
+                if os.path.isfile(fname):
+                    return fname, True
+        return fname, False
+            
+    def get_workspace(self, fields):
+        fname, found = self._get_workspace_file(self.msks_1,
+                                                self.msks_2)
+        cw =  nmt.NmtCovarianceWorkspace()
+        if found and (not self.recompute):
+            cw.read_from(fname)
+        else:
+            print("Computing " + fname)
+            cw.compute_coupling_coefficients(fields[self.tracers_1[0]].get_field(),
+                                             fields[self.tracers_1[1]].get_field(),
+                                             fields[self.tracers_2[0]].get_field(),
+                                             fields[self.tracers_2[1]].get_field())
+            cw.write_to(fname)
+        return cw
+
+    def _search_cl(self, cls, n1, n2):
+        if n1+'_'+n2 in cls:
+            return cls[n1+'_'+n2]
+        elif n2+'_'+n1 in cls:
+            return cls[n2+'_'+n1]
+        raise ValueError(f"Combination {n1}-{n2} doesn't exist")
+
+    def compute_covariance(self, cosmo, fields, cls, save=True):
+        if os.path.isfile(self.get_output_prefix()+'.npz') and (not self.recompute):
+            d = np.load(self.get_output_prefix()+'.npz')
+            self.cov = d['cov']
+        else:
+            self.cov = self.get_cov(cosmo, fields, cls)
+            if save:
+                np.savez(self.get_output_prefix(), cov=self.cov)
+
+    def get_cov(self, cosmo, fields, cls):
+        cw = self.get_workspace(fields)
+        cla1b1 = self._search_cl(cls,
+                                 self.tracers_1[0],
+                                 self.tracers_2[0]).get_cl_theory(cosmo, fields,
+                                                                  return_decoupled=False)
+        cla1b2 = self._search_cl(cls,
+                                 self.tracers_1[0],
+                                 self.tracers_2[1]).get_cl_theory(cosmo, fields,
+                                                                  return_decoupled=False)
+        cla2b1 = self._search_cl(cls,
+                                 self.tracers_1[1],
+                                 self.tracers_2[0]).get_cl_theory(cosmo, fields,
+                                                                  return_decoupled=False)
+        cla2b2 = self._search_cl(cls,
+                                 self.tracers_1[1],
+                                 self.tracers_2[1]).get_cl_theory(cosmo, fields,
+                                                                  return_decoupled=False)
+        cla = self._search_cl(cls, self.tracers_1[0], self.tracers_1[1])
+        wa = cla.get_workspace(fields)
+        ncla = cla.ncls
+        nl = cla.nl
+        clb = self._search_cl(cls, self.tracers_2[0], self.tracers_2[1])
+        wb = clb.get_workspace(fields)
+        nclb = clb.ncls
+
+        cov = nmt.gaussian_covariance(cw,
+                                      fields[self.tracers_1[0]].get_spin(),
+                                      fields[self.tracers_1[1]].get_spin(),
+                                      fields[self.tracers_2[0]].get_spin(),
+                                      fields[self.tracers_2[1]].get_spin(),
+                                      cla1b1, cla1b2, cla2b1, cla2b2, wa, wb)
+        cov = cov.reshape([nl, ncla, nl, nclb])
+        return cov
