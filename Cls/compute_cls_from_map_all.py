@@ -29,15 +29,16 @@ data_folder = '/mnt/extraspace/damonge/S8z_data/derived_products'
 # nside = 4096
 # nside = 2048
 nside = 512
+nrot = 20
 
 wltype = 'im3shape'
 # wltype = 'metacal'
 
 # Output folder
 if nside == 4096:
-    output_folder = '/mnt/extraspace/gravityls_3/S8z/Cls/all_together_{}_newbin_newnoise'.format(wltype)
+    output_folder = '/mnt/extraspace/gravityls_3/S8z/Cls/all_together_{}_new'.format(wltype)
 else:
-    output_folder = '/mnt/extraspace/gravityls_3/S8z/Cls/all_together_{}_{}_newbin_newnoise'.format(wltype, nside)
+    output_folder = '/mnt/extraspace/gravityls_3/S8z/Cls/all_together_{}_{}_new'.format(wltype, nside)
 os.makedirs(output_folder, exist_ok=True)
 
 ##############################################################################
@@ -103,23 +104,23 @@ des_maps_e1 = []
 des_maps_e2 = []
 des_opm_mean = []
 for i in range(4):
-    fname = os.path.join(des_data_folder_gwl, 'map_{}_bin{}_counts_w_ns{}.fits'.format(wltype, i, nside))
+    fname = os.path.join(des_data_folder_gwl, 'sums_{}_bin{}.npz'.format(wltype, i))
+    sums = np.load(fname)
+    fname = os.path.join(des_data_folder_gwl, 'map_{}_bin{}_w_ns{}.fits'.format(wltype, i, nside))
     mask_gwl = hp.read_map(fname)
-    fname = os.path.join(des_data_folder_gwl, 'map_{}_bin{}_counts_e1_ns{}.fits'.format(wltype, i, nside))
+    fname = os.path.join(des_data_folder_gwl, 'map_{}_bin{}_we1_ns{}.fits'.format(wltype, i, nside))
     map_we1 = hp.read_map(fname)
-    fname = os.path.join(des_data_folder_gwl, 'map_{}_bin{}_counts_e2_ns{}.fits'.format(wltype, i, nside))
+    fname = os.path.join(des_data_folder_gwl, 'map_{}_bin{}_we2_ns{}.fits'.format(wltype, i, nside))
     map_we2 = hp.read_map(fname)
-    fname = os.path.join(des_data_folder_gwl, 'map_{}_bin{}_counts_opm_ns{}.fits'.format(wltype, i, nside))
-    map_wopm = hp.read_map(fname)
 
     mask_good = mask_gwl > 0.
     mask_gwl[~mask_good] = 0.
-    opm_mean = np.sum(map_wopm[mask_good])/np.sum(mask_gwl[mask_good])
+    opm_mean = sums['wopm'] / sums['w'] 
 
     map_e1 = np.zeros_like(map_we1)
     map_e2 = np.zeros_like(map_we2)
-    map_e1[mask_good] = (map_we1[mask_good]/mask_gwl[mask_good] - (map_we1[mask_good].sum()/mask_gwl[mask_good].sum())) / opm_mean
-    map_e2[mask_good] = (map_we2[mask_good]/mask_gwl[mask_good] - (map_we2[mask_good].sum()/mask_gwl[mask_good].sum())) / opm_mean
+    map_e1[mask_good] = (map_we1[mask_good]/mask_gwl[mask_good]) / opm_mean
+    map_e2[mask_good] = (map_we2[mask_good]/mask_gwl[mask_good]) / opm_mean
 
     des_mask_gwl.append(mask_gwl)
     des_maps_e1.append(map_e1)
@@ -361,7 +362,6 @@ else:
 # Compute DES shear noise
 
 des_wl_noise_file = os.path.join(output_folder, "des_sh_{}_noise_ns{}.npz".format(wltype, nside))
-fname_rots = os.path.join(output_folder, "des_sh_{}_rot0-10_noise_ns{}.npz".format(wltype, nside))
 if os.path.isfile(des_wl_noise_file):
     N_wl = np.load(des_wl_noise_file)['cls']
     for ibin, N_wli in enumerate(N_wl):
@@ -370,7 +370,6 @@ if os.path.isfile(des_wl_noise_file):
 else:
     N_wl = []
     N_wl_raw = []
-    N_wl_rot = []
     for ibin in range(len(des_maps_e1)):
         # rotated_cls = []
         ws = nmt.NmtWorkspace()
@@ -378,7 +377,7 @@ else:
         ws.read_from(fname)
         
         # Analytical
-        nlee = nlbb = co.get_shear_noise(ibin, wltype, nside)
+        nlee = nlbb = co.get_shear_noise(ibin, wltype, nside, opm_mean=des_opm_mean[ibin])
         nleb = nlbe = 0 * nlee
         N_wl_raw.append(np.array([[nlee, nleb],[nlbe, nlbb]]))
         N_wl.append(ws.decouple_cell([nlee, nleb, nlbe, nlbb]).reshape((2, 2, -1)))
@@ -386,9 +385,6 @@ else:
         index_bin = len(des_maps) + 2 * ibin
         cl_matrix[index_bin : index_bin + 2, index_bin : index_bin + 2] -= N_wl[-1]
 
-        # Rotated galaxies for crosscheck
-        N_wl_rot.append(co.get_shear_noise_rot(ibin, wltype, nside, nrot=10,
-                        mask=des_mask_gwl[ibin], opm_mean=des_opm_mean[ibin], ws=ws))
 
     # Save noise from analytical exp
     noise_factor = np.mean(des_mask_gwl ** 2, axis=1)
@@ -396,21 +392,19 @@ else:
              l=b.get_effective_ells(), cls=N_wl, cls_raw=N_wl_raw, noise_factor=noise_factor,
              cls_cov = np.array(N_wl_raw)/noise_factor[:, None, None, None])
 
-    # Save noise from rotated galaxies
-    np.savez(fname_rots,
-             l=b.get_effective_ells(), cls=N_wl_rot)
 
 np.savez(os.path.join(output_folder, "cl_all_no_noise"),
          l=b.get_effective_ells(), cls=cl_matrix)
 
 # Noise from rotated galaxies for crosscheck
+fname_rots = os.path.join(output_folder, "des_sh_{}_rot0-{}_noise_ns{}.npz".format(wltype, nrot-1, nside))
 if not os.path.isfile(fname_rots):
     N_wl_rot = []
     for ibin in range(len(des_maps_e1)):
         ws = nmt.NmtWorkspace()
         fname = os.path.join(output_folder, 'w22_{}{}.dat'.format(1 + ibin, 1 + ibin))
         ws.read_from(fname)
-        N_wl_rot.append(co.get_shear_noise_rot(ibin, wltype, nside, nrot=10,
+        N_wl_rot.append(co.get_shear_noise_rot(ibin, wltype, nside, nrot=nrot,
                         mask=des_mask_gwl[ibin], opm_mean=des_opm_mean[ibin], ws=ws))
     np.savez(fname_rots,
              l=b.get_effective_ells(), cls=N_wl_rot)
