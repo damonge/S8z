@@ -10,7 +10,7 @@ import os
 def opt_callback(option, opt, value, parser):
         setattr(parser.values, option.dest, value.split(','))
 parser = OptionParser()
-parser.add_option('--outdir',dest='outdir',default='./sims_gc3_wl1_all_newnoise',type=str,
+parser.add_option('--outdir',dest='outdir',default='./sims_gc3_wl1_all_new',type=str,
                   help='Output directory')
 parser.add_option('--nside', dest='nside', default=512, type=int,
                   help='HEALPix nside param')
@@ -27,16 +27,16 @@ parser.add_option('--plot', dest='plot_stuff', default=False, action='store_true
 
 ##############################################################################
 # Set files prefix
-prefix_out = os.path.join(o.outdir, 'run_gc3_wl1_all')
+prefix_out = os.path.join(o.outdir + '_metacal', 'run_gc3_wl1_all')
 # Set nside
 valid_nside = [512, 2048, 4096]
 # wltype
-wltype = 'im3shape'
-# wltype = 'metacal'  # not for 512 with newbin
+# wltype = 'im3shape'
+wltype = 'metacal'  # not for 512 with newbin
 # Set root path of observations
 obs_path = '/mnt/extraspace/gravityls_3/S8z/Cls/all_together'
 if o.nside != 4096:
-    obs_path += '_{}_{}_newbin_newnoise'.format(wltype, o.nside)
+    obs_path += '_{}_{}_new'.format(wltype, o.nside)
 ##############################################################################
 # Check obspath:
 if not os.path.exists(obs_path):
@@ -100,7 +100,7 @@ nlte = np.zeros(l.size)
 fname = '/mnt/extraspace/damonge/S8z_data/derived_products/des_clustering/mask_ns{}.fits'.format(nside)
 mask_gc = hp.read_map(fname, verbose=False)
 
-fname = '/mnt/extraspace/damonge/S8z_data/derived_products/des_shear/map_{}_bin1_counts_w_ns{}.fits'.format(wltype, nside)
+fname = '/mnt/extraspace/damonge/S8z_data/derived_products/des_shear/map_{}_bin1_w_ns{}.fits'.format(wltype, nside)
 mask_wl = hp.read_map(fname, verbose=False)
 
 #Read bpw
@@ -212,11 +212,9 @@ if not os.path.isfile(prefix_out + '_covTh.npz'):
     # Copule fiducial Cls
     # Noise for covmat
     cl02_cov = w02.couple_cell([clte, cltb]) / np.mean(mask_gc * mask_wl)
-    cl22_cov = w22.couple_cell([clee, cleb, clbe, clbb]) / np.mean(mask_wl**2)
-    nlee_cov = nls['cls_raw'][1, 0, 0] / nls['noise_factor'][1]
-    nlbb_cov = nls['cls_raw'][1, 1, 1] / nls['noise_factor'][1]
-    cl22_cov[0] += nlee_cov
-    cl22_cov[-1] += nlbb_cov
+    cl22_cov = w22.couple_cell([clee, cleb, clbe, clbb]) 
+    cl22_cov += nls['cls_raw'][1].reshape(cl22_cov.shape)
+    cl22_cov /= np.mean(mask_wl**2)
 
     #####
     covar_00_00 = nmt.gaussian_covariance(cw00_00,
@@ -267,10 +265,10 @@ if not os.path.isfile(prefix_out + '_covTh.npz'):
                                           cl22_cov,  # EE, EB, BE, BB
                                           w22, wb=w22).reshape([lbpw.size, 4,
                                                                 lbpw.size, 4])
-fname = prefix_out + '_covTh.npz'
-np.savez_compressed(fname, cw00_00=covar_00_00, cw00_02=covar_00_02,
-                    cw00_22=covar_00_22, cw02_02=covar_02_02,
-                    cw02_22=covar_02_22, cw22_22=covar_22_22)
+    fname = prefix_out + '_covTh.npz'
+    np.savez_compressed(fname, cw00_00=covar_00_00, cw00_02=covar_00_02,
+                        cw00_22=covar_00_22, cw02_02=covar_02_02,
+                        cw02_22=covar_02_22, cw22_22=covar_22_22)
 
 #Generate theory prediction
 if not os.path.isfile(prefix_out+'_clth.txt') :
@@ -279,6 +277,15 @@ if not os.path.isfile(prefix_out+'_clth.txt') :
     cl02_th=w02.decouple_cell(w02.couple_cell(np.array([clte,cltb])))
     cl22_th=w22.decouple_cell(w22.couple_cell(np.array([clee,clbe,cleb,clbb])))
     np.savetxt(prefix_out+"_clth.txt",
+               np.transpose([b.get_effective_ells(),cl00_th[0],cl02_th[0],cl02_th[1],
+                             cl22_th[0],cl22_th[1],cl22_th[2],cl22_th[3]]))
+
+if not os.path.isfile(prefix_out+'_nlth.txt') :
+    print("Computing theory prediction")
+    cl00_th=w00.decouple_cell(w00.couple_cell(np.array([nltt])))
+    cl02_th=w02.decouple_cell(w02.couple_cell(np.array([nlte,nlte])))
+    cl22_th=w22.decouple_cell(w22.couple_cell(np.array([nlee,0*nlee,0*nlee,nlbb])))
+    np.savetxt(prefix_out+"_nlth.txt",
                np.transpose([b.get_effective_ells(),cl00_th[0],cl02_th[0],cl02_th[1],
                              cl22_th[0],cl22_th[1],cl22_th[2],cl22_th[3]]))
 
