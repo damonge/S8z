@@ -2,36 +2,27 @@ import wget
 import os
 from dwl_utils import dwl_file, mkdir, unzip, untar_and_remove
 
-predir=os.path.abspath('/bluewhale/damonge/S8z_data')
+predir=os.path.abspath('/mnt/extraspace/damonge/S8z_data')
 
 # Create data directory
 mkdir(predir+"/KiDS_data")
 os.chdir(predir+"/KiDS_data")
 
 # Download all files
-mkdir("shear_dr3_catalog")
-os.chdir("shear_dr3_catalog")
+mkdir("shear_KV450_catalog")
+os.chdir("shear_KV450_catalog")
 # Download summary file
-dwl_file("kids_dr3.1_shear_wget.txt","http://kids.strw.leidenuniv.nl/DR3/kids_dr3.1_shear_wget.txt")
-# Download individual files
-f=open("kids_dr3.1_shear_wget.txt","r")
-for l in f:
-    l=l.rstrip('\n')
-    fname=l.split('/')[-1]
-    dwl_file(fname,l)
-f.close()
+dwl_file("KV450_G9_reweight_3x4x4_v2_good.cat", "http://ds.astro.rug.astro-wise.org:8000/KV450_G9_reweight_3x4x4_v2_good.cat")
+dwl_file("KV450_G12_reweight_3x4x4_v2_good.cat", "http://ds.astro.rug.astro-wise.org:8000/KV450_G12_reweight_3x4x4_v2_good.cat")
+dwl_file("KV450_G15_reweight_3x4x4_v2_good.cat", "http://ds.astro.rug.astro-wise.org:8000/KV450_G15_reweight_3x4x4_v2_good.cat")
+dwl_file("KV450_G23_reweight_3x4x4_v2_good.cat", "http://ds.astro.rug.astro-wise.org:8000/KV450_G23_reweight_3x4x4_v2_good.cat")
+dwl_file("KV450_GS_reweight_3x4x4_v2_good.cat", "http://ds.astro.rug.astro-wise.org:8000/KV450_GS_reweight_3x4x4_v2_good.cat")
 os.chdir("../")
 
-# Download footprint
-mkdir("footprint")
-os.chdir("footprint")
-dwl_file("kids-450_footprint_mask.fits.gz","http://kids.strw.leidenuniv.nl/DR3/kids-450_footprint_mask.fits.gz")
-os.chdir('../')
-
 # Data vectors and redshift distributions
-dwl_file("KiDS-450_COSMIC_SHEAR_DATA_RELEASE/Nz_CC/Nz_CC_z0.1t0.3.asc",
-         "http://kids.strw.leidenuniv.nl/cs2016/KiDS-450_COSMIC_SHEAR_DATA_RELEASE.tar.gz",
-         call=lambda : untar_and_remove("KiDS-450_COSMIC_SHEAR_DATA_RELEASE.tar.gz"))
+dwl_file("KV450_COSMIC_SHEAR_DATA_RELEASE/SUPPLEMENTARY_FILES/CUT_VALUES/cut_values_5zbins_zbin5_small_scales.txt",
+         "http://kids.strw.leidenuniv.nl/cs2018/KV450_COSMIC_SHEAR_DATA_RELEASE.tar.gz",
+         call=lambda : untar_and_remove("KV450_COSMIC_SHEAR_DATA_RELEASE.tar.gz"))
 
 # Go back to root
 os.chdir(predir)

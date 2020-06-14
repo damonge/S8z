@@ -3,7 +3,6 @@ import pymaster as nmt
 import yaml
 import sys
 import utils as ut
-import matplotlib.pyplot as plt
 import os
 import pyccl as ccl
 
@@ -17,7 +16,6 @@ os.system('mkdir -p ' + p['predir_out'])
 
 l_edges = np.array(p['bpw_edges'])
 l_edges = l_edges[l_edges <= 3*p['nside']]
-print(l_edges)
 if 3*p['nside'] not in l_edges:
     l_edges = np.append(l_edges, 3*p['nside'])
 
@@ -49,7 +47,7 @@ for i1, m1 in enumerate(field_names):
         print(cell.name)
         cell.compute_spectra(fields)
         cls[cell.name] = cell
-exit(1)
+
 cosmo = ccl.Cosmology(Omega_c=0.25, Omega_b=0.05, h=0.67, n_s=0.96, sigma8=0.81)
 covs = {}
 for i1, cl1 in enumerate(p['c_ells']):
@@ -58,6 +56,9 @@ for i1, cl1 in enumerate(p['c_ells']):
         print(cov.name)
         cov.compute_covariance(cosmo, fields, cls)
         covs[cov.name] = cov
+
+'''
+import matplotlib.pyplot as plt
 fig, axes = plt.subplots(nfields, nfields, sharex=True, figsize=(10, 10))
 for cl in p['c_ells']:
     cell = cls[cl[0]+'_'+cl[1]]
@@ -75,7 +76,7 @@ for cl in p['c_ells']:
     ax.set_title(cell.name)
     ax.set_xscale('log')
     ax.set_yscale('log')
-'''
+
 for ipol in [0, 1, 2, 3]:
     fig, axes = plt.subplots(nfields_shear, nfields_shear, sharex=True, figsize=(10, 10))
     for cl in p['c_ells']:
@@ -93,5 +94,5 @@ for ipol in [0, 1, 2, 3]:
         ax.plot(cell.ells, cell.n_ell_analytic[ipol], 'b-')
         ax.set_title(cell.name)
         ax.set_xscale('log')
-'''
 plt.show()
+'''
