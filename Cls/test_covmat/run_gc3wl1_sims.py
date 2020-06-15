@@ -22,17 +22,19 @@ parser.add_option('--isim-end', dest='isim_end', default=100, type=int,
                   help='Index of last simulation')
 parser.add_option('--plot', dest='plot_stuff', default=False, action='store_true',
                   help='Set if you want to produce plots')
+parser.add_option('--oldcov', dest='oldcov', default=False, action='store_true',
+                  help='Set if you want to compute covmat without coupling the Cls')
 
 (o, args) = parser.parse_args()
 
 ##############################################################################
 # Set files prefix
-prefix_out = os.path.join(o.outdir + '_metacal', 'run_gc3_wl1_all')
+prefix_out = os.path.join(o.outdir, 'run_gc3_wl1_all')
 # Set nside
 valid_nside = [512, 2048, 4096]
 # wltype
-# wltype = 'im3shape'
-wltype = 'metacal'  # not for 512 with newbin
+wltype = 'im3shape'
+# wltype = 'metacal'  # not for 512 with newbin
 # Set root path of observations
 obs_path = '/mnt/extraspace/gravityls_3/S8z/Cls/all_together'
 if o.nside != 4096:
@@ -157,7 +159,7 @@ else:
 ##############################################################################
 # Compute covariance (only depends on the masks)
 ##############################################################################
-if not os.path.isfile(prefix_out + '_covTh.npz'):
+if not os.path.isfile(prefix_out + '_covTh{}.npz'.format('old' if o.oldcov else '')):
     cw00_00 = nmt.NmtCovarianceWorkspace()
     if not os.path.isfile(prefix_out+"_cw0000.dat") : # mask0-mask0-mask0-mask0
         print("Computing cw0000")
@@ -209,12 +211,14 @@ if not os.path.isfile(prefix_out + '_covTh.npz'):
     ##
     # Compute matrices
     ##
-    # Copule fiducial Cls
-    # Noise for covmat
-    cl02_cov = w02.couple_cell([clte, cltb]) / np.mean(mask_gc * mask_wl)
-    cl22_cov = w22.couple_cell([clee, cleb, clbe, clbb]) 
-    cl22_cov += nls['cls_raw'][1].reshape(cl22_cov.shape)
-    cl22_cov /= np.mean(mask_wl**2)
+    if o.oldcov: # No coupled Cls
+        cl02_cov = np.array([clte, cltb]) 
+        cl22_cov = np.array([clee + nlee, cleb, clbe, clbb + nlbb]) 
+    else: # Couple Cls
+        cl02_cov = w02.couple_cell([clte, cltb]) / np.mean(mask_gc * mask_wl)
+        cl22_cov = w22.couple_cell([clee, cleb, clbe, clbb]) 
+        cl22_cov += nls['cls_raw'][1].reshape(cl22_cov.shape)
+        cl22_cov /= np.mean(mask_wl**2)
 
     #####
     covar_00_00 = nmt.gaussian_covariance(cw00_00,
@@ -265,7 +269,7 @@ if not os.path.isfile(prefix_out + '_covTh.npz'):
                                           cl22_cov,  # EE, EB, BE, BB
                                           w22, wb=w22).reshape([lbpw.size, 4,
                                                                 lbpw.size, 4])
-    fname = prefix_out + '_covTh.npz'
+    fname = prefix_out + '_covTh{}.npz'.format('old' if o.oldcov else '')
     np.savez_compressed(fname, cw00_00=covar_00_00, cw00_02=covar_00_02,
                         cw00_22=covar_00_22, cw02_02=covar_02_02,
                         cw02_22=covar_02_22, cw22_22=covar_22_22)
