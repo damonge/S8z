@@ -14,10 +14,9 @@ import common as co
 ##############################################################################
 ##############################################################################
 nside = 4096
-obsdir = '/mnt/extraspace/gravityls_3/S8z/Cls/all_together'
+wltype = 'metacal'
+obsdir = '/mnt/extraspace/gravityls_3/S8z/Cls/all_together_metacal_new'
 outdir = os.path.join(obsdir, 'new_fiducial_cov')
-if nside != 4096:
-    outdir += '_{}'.format(nside)
 
 ##############################################################################
 ################ Read Cls ###############
@@ -37,7 +36,7 @@ lbpw, obs_cls_all_wn = lbpw_obs_cls_all['l'], lbpw_obs_cls_all['cls']
 ############### Load DES noises
 
 desgc_nls_arr = np.load(os.path.join(obsdir, 'des_w_cl_shot_noise_ns{}.npz'.format(nside)))['cls']
-dessh_nls_arr = np.load(os.path.join(obsdir, 'des_sh_metacal_rot0-10_noise_ns{}.npz'.format(nside)))['cls']
+dessh_nls_arr = np.load(os.path.join(obsdir, 'des_sh_{}_noise_ns{}.npz'.format(wltype, nside)))['cls']
 
 ############## Add noise
 for i, nls_i in enumerate(desgc_nls_arr):
@@ -56,6 +55,27 @@ th_cls_all[-1, -1] = interp1d(lbpw, obs_cls_all_wn[-1, -1], bounds_error=False,
 
 
 np.savez_compressed(outdir + '/th_cls_all_with_noise.npz', ell=th_ell, cls=th_cls_all)
+
+##############################################################################
+############################### Load masks ###################################
+##############################################################################
+def load_masks():
+    masks = []
+    #Read mask
+    fname = '/mnt/extraspace/damonge/S8z_data/derived_products/des_clustering/mask_ns{}.fits'.format(nside)
+    masks.append(hp.read_map(fname, verbose=False))
+
+    for ibin in range(4):
+        fname = '/mnt/extraspace/damonge/S8z_data/derived_products/des_shear/map_{}_bin{}_w_ns{}.fits'.format(wltype, ibin, nside)
+        masks.append(hp.read_map(fname, verbose=False))
+
+    fname = '/mnt/extraspace/damonge/S8z_data/derived_products/planck_lensing/mask_ns{}.fits'.format(nside)'
+    masks.append(hp.read_map(fname))
+    masks = np.array(masks)
+
+    return masks
+
+
 ##############################################################################
 ##############################################################################
 ####################### NaMaster-thing part ##################################
@@ -78,7 +98,7 @@ def get_workspace_from_spins_masks(spin1, spin2, mask1, mask2):
         ws.read_from(fname)
         return ws
 
-def compute_covariance_full(clTh, nbpw, nbins, maps_bins, maps_spins, maps_masks):
+def compute_covariance_full(clTh, nbpw, nbins, maps_bins, maps_spins, maps_masks, masks):
 
     nmaps = len(maps_bins)
     fname_cw_old = ''
@@ -138,8 +158,41 @@ def compute_covariance_full(clTh, nbpw, nbins, maps_bins, maps_spins, maps_masks
         cla2b1 = np.concatenate(clTh[ibin_a2 : ibin_a2 + na2, ibin_b1 : ibin_b1 + nb1])
         cla2b2 = np.concatenate(clTh[ibin_a2 : ibin_a2 + na2, ibin_b2 : ibin_b2 + nb2])
 
+        ##### Couple Cl
+        wa1b1 = get_workspace_from_spins_masks(s_a1, s_b1, m_a1, m_b1)
+        cla1b1 = wa1b1.couple_cell(cla1b1)
+        #
+        if m_b2 != m_b1:
+            wa1b2 = get_workspace_from_spins_masks(s_a1, s_b2, m_a1, m_b2)
+        else:
+            wa1b2 = wa1b1
+        cla1b2 = wa1b2.couple_cell(cla1b2)
+        #
+        if m_a2 != m_a1:
+            wa2b1 = get_workspace_from_spins_masks(s_a2, s_b1, m_a2, m_b1)
+        else:
+            wa2b1 = wa1b1
+        cla2b1 = wa2b1.couple_cell(cla2b1)
+        #
+        if m_b2 != m_b1:
+            wa2b2 = get_workspace_from_spins_masks(s_a2, s_b2, m_a2, m_b2)
+        else:
+            wa2b2 = wa2b1
+        cla2b2 = wa2b2.couple_cell(cla2b2)
+        #####
+
+        #### Weight the Cls
+        cla1b1 = cla1b1 / np.mean(masks[m_a1] * masks[m_b1])
+        cla1b2 = cla1b2 / np.mean(masks[m_a1] * masks[m_b2])
+        cla2b1 = cla2b1 / np.mean(masks[m_a2] * masks[m_b1])
+        cla2b2 = cla2b2 / np.mean(masks[m_a2] * masks[m_b2])
+        ####
+
         wa = get_workspace_from_spins_masks(s_a1, s_a2, m_a1, m_a2)
-        wb = get_workspace_from_spins_masks(s_b1, s_b2, m_b1, m_b2)
+        if (m_a1 == m_b1) and (m_a2 == m_b2):
+            wb = wa
+        else:
+            wb = get_workspace_from_spins_masks(s_b1, s_b2, m_b1, m_b2)
 
         fname_cw = os.path.join(obsdir, 'cw{}{}{}{}.dat'.format(*cov_masks[i]))
         if fname_cw != fname_cw_old:
@@ -179,9 +232,12 @@ def compute_covariance_full(clTh, nbpw, nbins, maps_bins, maps_spins, maps_masks
     # Loop through cov_indices, use below algorithm and compute the Cov
     # Check wich one has been computed, store/save it and remove them form cov_indices
 
+###################
+
 nbins = 5 + 4 + 1
 nmaps = 5 + 8 + 1
 maps_bins = [0, 1, 2, 3, 4] + [5, 5] + [6, 6] + [7, 7] + [8, 8] + [9]
 maps_masks = [0] * 5 + [1, 1] + [2, 2] + [3, 3] + [4, 4] + [5]
 maps_spins = [0] * 5 + [2, 2] * 4 + [0]
-compute_covariance_full(th_cls_all, lbpw.size, nbins, maps_bins, maps_spins, maps_masks)
+masks = load_masks()
+compute_covariance_full(th_cls_all, lbpw.size, nbins, maps_bins, maps_spins, maps_masks, masks)
