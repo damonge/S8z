@@ -62,8 +62,6 @@ nls_all = np.zeros_like(th_cls_all[:, :, :3*nside])
 
 ############## Add noise
 for i, nls_i in enumerate(desgc_nls_arr):
-    print(i)
-    print(nls_i)
     nls_all[i, i] = nls_i
 
 for i, nls_i in enumerate(dessh_nls_arr):
@@ -126,6 +124,7 @@ def get_workspace_from_spins_masks(spin1, spin2, mask1, mask2):
         else:
             fname = os.path.join(obsdir, 'w{}{}_{}{}.dat'.format(spin2, spin1, mask2, mask1))
 
+        # print('Reading', fname)
         ws.read_from(fname)
         return ws
 
@@ -179,10 +178,10 @@ def compute_covariance_full(clTh, nls_all, nbpw, nbins, maps_bins, maps_spins, m
         if os.path.isfile(fname):
             continue
 
-        ibin_a1 = np.where(maps_bins == bin_a1)[0][0] + int(s_a1 / 2)
-        ibin_a2 = np.where(maps_bins == bin_a2)[0][0] + int(s_a2 / 2)
-        ibin_b1 = np.where(maps_bins == bin_b1)[0][0] + int(s_b1 / 2)
-        ibin_b2 = np.where(maps_bins == bin_b2)[0][0] + int(s_b2 / 2)
+        ibin_a1 = np.where(maps_bins == bin_a1)[0][0]
+        ibin_a2 = np.where(maps_bins == bin_a2)[0][0]
+        ibin_b1 = np.where(maps_bins == bin_b1)[0][0]
+        ibin_b2 = np.where(maps_bins == bin_b2)[0][0]
 
         cla1b1 = np.concatenate(clTh[ibin_a1 : ibin_a1 + na1, ibin_b1 : ibin_b1 + nb1])
         cla1b2 = np.concatenate(clTh[ibin_a1 : ibin_a1 + na1, ibin_b2 : ibin_b2 + nb2])
