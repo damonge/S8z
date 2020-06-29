@@ -346,17 +346,22 @@ else:
     N_ell = des_mask.sum() / hp.nside2npix(nside) / des_N_mean_srad
 
     N_bpw = []
+    N_bpw_raw = []
     ws = nmt.NmtWorkspace()
     fname = os.path.join(output_folder, 'w{}{}_{}{}.dat'.format(0, 0, 0, 0))
     ws.read_from(fname)
     for i, N_ell_mapi in enumerate(N_ell):
         N_bpw.append(ws.decouple_cell([N_ell_mapi * np.ones(3 * nside)])[0])
         cl_matrix[i, i] -= N_bpw[-1]
+        N_bpw_raw.append(N_ell_mapi * np.ones(3 * nside))
 
     N_bpw = np.array(N_bpw)
+    N_bpw_raw = np.array(N_bpw_raw)
+    noise_factor = np.mean(des_mask ** 2) * np.ones(N_ell.shape[0])
 
     np.savez(des_gc_noise_file,
-             l=b.get_effective_ells(), cls=N_bpw)
+             l=b.get_effective_ells(), cls=N_bpw, cls_raw=N_bpw_raw,
+             noise_factor=noise_factor, cls_cov=N_bpw_raw/noise_factor[:, None])
 
 # Compute DES shear noise
 

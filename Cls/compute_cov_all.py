@@ -2,6 +2,7 @@
 
 from __future__ import print_function
 from scipy.interpolate import interp1d
+import argparse
 import os
 import sys
 import pymaster as nmt
@@ -13,10 +14,28 @@ import common as co
 
 ##############################################################################
 ##############################################################################
-nside = 4096
-wltype = 'metacal'
-obsdir = '/mnt/extraspace/gravityls_3/S8z/Cls/all_together_metacal_new'
-outdir = os.path.join(obsdir, 'new_fiducial_cov')
+parser = argparse.ArgumentParser(description="Compute PSFi-ei Cls")
+parser.add_argument('--nside',  default=4096, type=int,
+                    help='HEALPix nside param')
+parser.add_argument('--wltype', default='metacal', type=str,
+                    help='DES weak lensing shear measurement algorithm (metacal or im3shape)')
+parser.add_argument('--plot', default=False, action='store_true',
+                    help='Set if you want to produce plots')
+
+args = parser.parse_args()
+###############################################################################
+
+wltype = args.wltype
+nside = args.nside
+
+# Output folder
+if nside == 4096:
+    obsdir = '/mnt/extraspace/gravityls_3/S8z/Cls/all_together_{}_new'.format(wltype)
+else:
+    obsdir = '/mnt/extraspace/gravityls_3/S8z/Cls/all_together_{}_{}_new'.format(wltype, nside)
+
+outdir = os.path.join(obsdir, 'cov_new_fiducial')
+os.makedirs(outdir , exist_ok=True)
 
 ##############################################################################
 ################ Read Cls ###############
@@ -35,26 +54,28 @@ lbpw, obs_cls_all_wn = lbpw_obs_cls_all['l'], lbpw_obs_cls_all['cls']
 
 ############### Load DES noises
 
-desgc_nls_arr = np.load(os.path.join(obsdir, 'des_w_cl_shot_noise_ns{}.npz'.format(nside)))['cls']
-dessh_nls_arr = np.load(os.path.join(obsdir, 'des_sh_{}_noise_ns{}.npz'.format(wltype, nside)))['cls']
+desgc_nls_arr = np.load(os.path.join(obsdir, 'des_w_cl_shot_noise_ns{}.npz'.format(nside)))['cls_raw']
+dessh_nls_arr = np.load(os.path.join(obsdir, 'des_sh_{}_noise_ns{}.npz'.format(wltype, nside)))['cls_raw']
+
+############## Fill noise array
+nls_all = np.zeros_like(th_cls_all[:, :, :3*nside])
 
 ############## Add noise
 for i, nls_i in enumerate(desgc_nls_arr):
-    th_cls_all[i, i] += interp1d(lbpw, nls_i, bounds_error=False,
-                                 fill_value=(nls_i[0], nls_i[-1]))(th_ell)
+    print(i)
+    print(nls_i)
+    nls_all[i, i] = nls_i
 
 for i, nls_i in enumerate(dessh_nls_arr):
     ish = len(desgc_nls_arr) + 2 * i
-    th_cls_all[ish, ish] += interp1d(lbpw, nls_i[0, 0], bounds_error=False,
-                                     fill_value=(nls_i[0, 0, 0], nls_i[0, 0, -1]))(th_ell)
-    th_cls_all[ish+1, ish+1] += interp1d(lbpw, nls_i[1, 1], bounds_error=False,
-                                     fill_value=(nls_i[1, 1, 0], nls_i[1, 1, -1]))(th_ell)
-############## Use observed Planck's Cls for auto-correlation
-th_cls_all[-1, -1] = interp1d(lbpw, obs_cls_all_wn[-1, -1], bounds_error=False,
-                                 fill_value=(obs_cls_all_wn[-1, -1, 0], obs_cls_all_wn[-1, -1, -1]))(th_ell)
+    nls_all[ish, ish] = nls_i[0, 0]
+    nls_all[ish+1, ish+1] = nls_i[1, 1]
 
-
-np.savez_compressed(outdir + '/th_cls_all_with_noise.npz', ell=th_ell, cls=th_cls_all)
+############## Use observed Planck's Cls for auto-correlation (This is not correct,
+# but it is not used in the lkl. Don't worry now)
+nls_all[-1, -1] = interp1d(lbpw, obs_cls_all_wn[-1, -1], bounds_error=False,
+                           fill_value=(obs_cls_all_wn[-1, -1, 0],
+                                       obs_cls_all_wn[-1, -1, -1]))(th_ell[:3*nside]) - th_cls_all[-1, -1, :3*nside]
 
 ##############################################################################
 ############################### Load masks ###################################
@@ -69,8 +90,14 @@ def load_masks():
         fname = '/mnt/extraspace/damonge/S8z_data/derived_products/des_shear/map_{}_bin{}_w_ns{}.fits'.format(wltype, ibin, nside)
         masks.append(hp.read_map(fname, verbose=False))
 
-    fname = '/mnt/extraspace/damonge/S8z_data/derived_products/planck_lensing/mask_ns{}.fits'.format(nside)'
-    masks.append(hp.read_map(fname))
+    planck_data_folder = '/mnt/extraspace/damonge/S8z_data/derived_products/planck_lensing/'
+    if nside in [2048, 4096]:
+        fname = os.path.join(planck_data_folder, 'mask_ns{}.fits'.format(nside))
+        masks.append(hp.read_map(fname))
+    else:
+        fname = os.path.join(planck_data_folder, 'mask_ns{}.fits'.format(4096))
+        masks.append(hp.ud_grade(hp.read_map(fname), nside_out=nside))
+
     masks = np.array(masks)
 
     return masks
@@ -94,11 +121,15 @@ def get_nelems_spin(spin):
 
 def get_workspace_from_spins_masks(spin1, spin2, mask1, mask2):
         ws = nmt.NmtWorkspace()
-        fname = os.path.join(obsdir, 'w{}{}_{}{}.dat'.format(spin1, spin2, mask1, mask2))
+        if mask2 >= mask1:
+            fname = os.path.join(obsdir, 'w{}{}_{}{}.dat'.format(spin1, spin2, mask1, mask2))
+        else:
+            fname = os.path.join(obsdir, 'w{}{}_{}{}.dat'.format(spin2, spin1, mask2, mask1))
+
         ws.read_from(fname)
         return ws
 
-def compute_covariance_full(clTh, nbpw, nbins, maps_bins, maps_spins, maps_masks, masks):
+def compute_covariance_full(clTh, nls_all, nbpw, nbins, maps_bins, maps_spins, maps_masks, masks):
 
     nmaps = len(maps_bins)
     fname_cw_old = ''
@@ -158,6 +189,11 @@ def compute_covariance_full(clTh, nbpw, nbins, maps_bins, maps_spins, maps_masks
         cla2b1 = np.concatenate(clTh[ibin_a2 : ibin_a2 + na2, ibin_b1 : ibin_b1 + nb1])
         cla2b2 = np.concatenate(clTh[ibin_a2 : ibin_a2 + na2, ibin_b2 : ibin_b2 + nb2])
 
+        nla1b1 = np.concatenate(nls_all[ibin_a1 : ibin_a1 + na1, ibin_b1 : ibin_b1 + nb1])
+        nla1b2 = np.concatenate(nls_all[ibin_a1 : ibin_a1 + na1, ibin_b2 : ibin_b2 + nb2])
+        nla2b1 = np.concatenate(nls_all[ibin_a2 : ibin_a2 + na2, ibin_b1 : ibin_b1 + nb1])
+        nla2b2 = np.concatenate(nls_all[ibin_a2 : ibin_a2 + na2, ibin_b2 : ibin_b2 + nb2])
+
         ##### Couple Cl
         wa1b1 = get_workspace_from_spins_masks(s_a1, s_b1, m_a1, m_b1)
         cla1b1 = wa1b1.couple_cell(cla1b1)
@@ -182,10 +218,10 @@ def compute_covariance_full(clTh, nbpw, nbins, maps_bins, maps_spins, maps_masks
         #####
 
         #### Weight the Cls
-        cla1b1 = cla1b1 / np.mean(masks[m_a1] * masks[m_b1])
-        cla1b2 = cla1b2 / np.mean(masks[m_a1] * masks[m_b2])
-        cla2b1 = cla2b1 / np.mean(masks[m_a2] * masks[m_b1])
-        cla2b2 = cla2b2 / np.mean(masks[m_a2] * masks[m_b2])
+        cla1b1 = (cla1b1 + nla1b1) / np.mean(masks[m_a1] * masks[m_b1])
+        cla1b2 = (cla1b2 + nla1b2) / np.mean(masks[m_a1] * masks[m_b2])
+        cla2b1 = (cla2b1 + nla2b1) / np.mean(masks[m_a2] * masks[m_b1])
+        cla2b2 = (cla2b2 + nla2b2) / np.mean(masks[m_a2] * masks[m_b2])
         ####
 
         wa = get_workspace_from_spins_masks(s_a1, s_a2, m_a1, m_a2)
@@ -240,4 +276,4 @@ maps_bins = [0, 1, 2, 3, 4] + [5, 5] + [6, 6] + [7, 7] + [8, 8] + [9]
 maps_masks = [0] * 5 + [1, 1] + [2, 2] + [3, 3] + [4, 4] + [5]
 maps_spins = [0] * 5 + [2, 2] * 4 + [0]
 masks = load_masks()
-compute_covariance_full(th_cls_all, lbpw.size, nbins, maps_bins, maps_spins, maps_masks, masks)
+compute_covariance_full(th_cls_all, nls_all, lbpw.size, nbins, maps_bins, maps_spins, maps_masks, masks)
