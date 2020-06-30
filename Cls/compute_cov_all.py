@@ -140,6 +140,9 @@ def compute_covariance_full(clTh, nls_all, nbpw, nbins, maps_bins, maps_spins, m
     for i in range(nmaps):
         si = maps_spins[i]
         for j in range(i, nmaps):
+            if (maps_masks[i] == 0) and (maps_masks[j] == 0) and (i != j): # Don't compute gcX-gcY for X!=Y
+                print('Skipping', i, j)
+                continue
             sj = maps_spins[j]
             cl_indices.append([i, j])
             cl_spins.append([si, sj])
@@ -151,11 +154,11 @@ def compute_covariance_full(clTh, nls_all, nbpw, nbins, maps_bins, maps_spins, m
     cov_bins = []
     cov_masks = []
     for i, clij in enumerate(cl_indices):
-        for j, clkl in enumerate(cl_indices[i:]):
-            cov_indices.append(cl_indices[i] + cl_indices[i + j])
-            cov_spins.append(cl_spins[i] + cl_spins[i + j])
-            cov_bins.append(cl_bins[i] + cl_bins[i + j])
-            cov_masks.append(cl_masks[i] + cl_masks[i + j])
+        for j, clkl in enumerate(cl_indices[i:], i):
+            cov_indices.append(cl_indices[i] + cl_indices[j])
+            cov_spins.append(cl_spins[i] + cl_spins[j])
+            cov_bins.append(cl_bins[i] + cl_bins[j])
+            cov_masks.append(cl_masks[i] + cl_masks[j])
 
 
     cov_indices = np.array(cov_indices)
@@ -262,6 +265,7 @@ def compute_covariance_full(clTh, nls_all, nbpw, nbins, maps_bins, maps_spins, m
         fname_new = os.path.join(outdir, 'cov_{}_{}_{}_{}.npz'.format(*tracer_names))
         #  TT -> 0; TE -> 0;  EE -> 0
         np.savez_compressed(fname_new, cov.reshape((nbpw, na1 * na2, nbpw, nb1 * nb2))[:, 0, :, 0])
+        print('Computed {}'.format(fname_new))
 
 
     # Loop through cov_indices, use below algorithm and compute the Cov
