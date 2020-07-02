@@ -118,8 +118,8 @@ if not os.path.isfile(fname):
     for i in range(4):
         mask1 = mask2 = i + 1
         ws = nmt.NmtWorkspace()
-        fname = os.path.join(output_folder, 'w{}{}_{}{}.dat'.format(spin1, spin2, mask1, mask2))
-        ws.read_from(fname)
+        ws_fname = os.path.join(output_folder, 'w{}{}_{}{}.dat'.format(spin1, spin2, mask1, mask2))
+        ws.read_from(ws_fname)
 
         f1 = fields_psf[i]
         f2 = fields_e[i]
