@@ -226,9 +226,27 @@ def compute_covariance_full(clTh, nls_all, nbpw, nbins, maps_bins, maps_spins, m
         cla2b2 = (cla2b2 + nla2b2) / np.mean(masks[m_a2] * masks[m_b2])
         ####
 
-        wa = get_workspace_from_spins_masks(s_a1, s_a2, m_a1, m_a2)
+        if m_b1 == m_a2:
+            wa = wa1b1
+        elif m_b2 == m_a2:
+            wa = wa1b2
+        elif m_b1 == m_a1:
+            wa = wa2b1
+        elif m_b2 == m_a1:
+            wa = wa2b2
+        else:
+            wa = get_workspace_from_spins_masks(s_a1, s_a2, m_a1, m_a2)
+
         if (m_a1 == m_b1) and (m_a2 == m_b2):
             wb = wa
+        elif m_a1 == m_b2:
+            wb = wa1b1
+        elif m_a1 == m_b1:
+            wb = wa1b2
+        elif m_a2 == m_b2:
+            wb = wa2b1
+        elif m_a2 == m_b1:
+            wb = wa2b2
         else:
             wb = get_workspace_from_spins_masks(s_b1, s_b2, m_b1, m_b2)
 
