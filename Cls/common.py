@@ -4,6 +4,15 @@ import numpy as np
 import pymaster as nmt
 import os
 
+def get_NmtBin(nside):
+    ells = np.arange(3 * nside)
+    ells_lim_bpw= np.array([0, 30, 60, 90, 120, 150, 180, 210, 240, 272, 309, 351, 398, 452, 513, 582, 661, 750, 852, 967, 1098, 1247, 1416, 1608, 1826, 2073, 2354, 2673, 3035, 3446, 3914, 4444, 5047, 5731, 6508, 7390, 8392, 9529, 10821, 12288])
+    ells_lim_bpw = ells_lim_bpw[ells_lim_bpw <= 3 * nside] # 3*nside == ells[-1] + 1
+    if 3*nside not in ells_lim_bpw: # Exhaust lmax --> gives same result as previous method, but adds 1 bpw (not for 4096)
+        ells_lim_bpw = np.append(ells_lim_bpw, 3*nside)
+    b = nmt.NmtBin.from_edges(ells_lim_bpw[:-1], ells_lim_bpw[1:])
+    return b
+
 def get_opm_mean(root, ibin, wltype):
     fname = root + 'sums_{}_bin{}.npz'.format(wltype, i)
     sums = np.load(fname)
@@ -66,7 +75,7 @@ def get_shear_noise_rot(ibin, wltype, nside, nrot=10, survey='des', mask=None, o
         cls += ws.decouple_cell(nmt.compute_coupled_cell(f, f)).reshape((2, 2, -1))
 
     return cls / nrot
-    
+
 def get_tracer_name(ibin):
     if ibin in np.arange(5):
         name = 'DESgc{}'.format(ibin)
