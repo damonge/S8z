@@ -37,13 +37,14 @@ obspath_wl = os.path.join(obspath, 'des_shear')
 
 b = co.get_NmtBin(nside)
 nells_nobin = 3 * nside
+ells_nobin = np.arange(nells_nobin)
 nbpw = b.get_n_bands()
 
-window_ar = np.zeros(nbpw, nells_nobin)
+window_ar = np.zeros((nbpw, nells_nobin))
 for i in range(nbpw):
     window_ar[i, b.get_ell_list(i)] = b.get_weight_list(i)
 
-wins = sacc.BandpowerWindow(nells_nobin, window_ar.T)
+wins = sacc.BandpowerWindow(ells_nobin, window_ar.T)
 
 ##############################################################################
 # Create tracers (interested only on shear)
@@ -69,14 +70,53 @@ for i in range(ntracers_wl):
                  nz=nz)
     tracer_names.append(name)
 
+s_noise = s.copy()
+##############################################################################
+# Add Noise to SACC s_noise instance
+##############################################################################
+fname = os.path.join(clsdir, "des_sh_{}_noise_ns{}.npz".format(wltype, nside))
+clfile = np.load(fname)
+lbpw = clfile['l']
+if not np.all(lbpw == b.get_effective_ells()):
+    raise 'Bandpowers from NmtBin and des_sh_{}_noise_ns{}.npz file do NOT coincide'.format(wltype, nside)
+nls = clfile['cls']
+
+for i in range(ntracers_wl):
+    cl_type = 'cl_ee'
+    tr1 = tr2 = 'wl{}'.format(i)
+    s_noise.add_ell_cl(cl_type, tr1, tr2,
+                 lbpw, nls[i, 0, 0],
+                 window=wins)
+    cl_type = 'cl_eb'
+    tr1 = tr2 = 'wl{}'.format(i)
+    s_noise.add_ell_cl(cl_type, tr1, tr2,
+                 lbpw, nls[i, 0, 0]*0,
+                 window=wins)
+    cl_type = 'cl_be'
+    tr1 = tr2 = 'wl{}'.format(i)
+    s_noise.add_ell_cl(cl_type, tr1, tr2,
+                 lbpw, nls[i, 0, 0]*0,
+                 window=wins)
+    cl_type = 'cl_bb'
+    tr1 = tr2 = 'wl{}'.format(i)
+    s_noise.add_ell_cl(cl_type, tr1, tr2,
+                 lbpw, nls[i, 1, 1],
+                 window=wins)
+
+fname = os.path.join(clsdir, "DESwl_nls.fits")
+s_noise.save_fits(fname, overwrite=args.overwrite)
+##############################################################################
+
+##############################################################################
+# Continue with detected Cls
 ##############################################################################
 # Add Cls
 ##############################################################################
 
-fname = os.path.join(clsdir, "cl_all_no_noise")
+fname = os.path.join(clsdir, "cl_all_no_noise.npz")
 clfile = np.load(fname)
 lbpw = clfile['l']
-if not (lbpw == b.get_effective_ells()):
+if not np.all(lbpw == b.get_effective_ells()):
     raise 'Bandpowers from NmtBin and cl_all_no_noise file do NOT coincide'
 cl_matrix = clfile['cls']
 
@@ -87,7 +127,7 @@ for tr in tracer_names:
 
 cl_tracers = []
 for i, fn1 in enumerate(field_names):
-    for j, fn2 in enumerate(field_names[i:, ], i):
+    for j, fn2 in enumerate(field_names[i:], i):
         cl_type = 'cl_{}{}'.format(fn1[-1], fn2[-1])
         tr1 = fn1.split('_')[0]
         tr2 = fn2.split('_')[0]
@@ -105,13 +145,15 @@ clmodes_index = {'ee': 0,
                  'bb': 3}
 
 ncls = len(cl_tracers)
-covmat = -1 * np.ones(ncls, ncls)
+covmat = -1 * np.ones((ncls * nbpw, ncls * nbpw))
 for i, trs1 in enumerate(cl_tracers):
     for j, trs2 in enumerate(cl_tracers[i:], i):
-        b1 = trs1[0].split('_')[0][-1]
-        b2 = trs1[1].split('_')[0][-1]
-        b3 = trs2[0].split('_')[0][-1]
-        b4 = trs2[1].split('_')[0][-1]
+        # Get bin number
+        b1 = int(trs1[0].split('_')[0][-1]) + 5
+        b2 = int(trs1[1].split('_')[0][-1]) + 5
+        b3 = int(trs2[0].split('_')[0][-1]) + 5
+        b4 = int(trs2[1].split('_')[0][-1]) + 5
+        # Get cov matrix indexes for given modes
         index1 = clmodes_index[trs1[0][-1] + trs1[1][-1]]
         index2 = clmodes_index[trs2[0][-1] + trs2[1][-1]]
 
@@ -126,4 +168,5 @@ s.add_covariance(covmat)
 ##############################################################################
 # Save
 ##############################################################################
-s.save_fits("DES_wl.fits", overwrite=args.overwrite)
+fname = os.path.join(clsdir, "DESwl.fits")
+s.save_fits(fname, overwrite=args.overwrite)
