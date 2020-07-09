@@ -3,6 +3,7 @@
 import numpy as np
 import argparse
 import common as co
+import pymaster as nmt
 import sacc
 import os
 
@@ -31,20 +32,6 @@ else:
 covdir = os.path.join(clsdir, 'cov_new_fiducial')
 obspath = '/mnt/extraspace/damonge/S8z_data/derived_products/'
 obspath_wl = os.path.join(obspath, 'des_shear')
-##############################################################################
-# Define bandpower windows
-##############################################################################
-
-b = co.get_NmtBin(nside)
-nells_nobin = 3 * nside
-ells_nobin = np.arange(nells_nobin)
-nbpw = b.get_n_bands()
-
-window_ar = np.zeros((nbpw, nells_nobin))
-for i in range(nbpw):
-    window_ar[i, b.get_ell_list(i)] = b.get_weight_list(i)
-
-wins = sacc.BandpowerWindow(ells_nobin, window_ar.T)
 
 ##############################################################################
 # Create tracers (interested only on shear)
@@ -53,7 +40,7 @@ s = sacc.Sacc()
 
 ntracers_gc = 5
 ntracers_wl = 4
-# ntracers_cv = 1
+ntracers_cv = 1
 
 tracer_names = []
 for i in range(ntracers_wl):
@@ -72,6 +59,29 @@ for i in range(ntracers_wl):
 
 s_noise = s.copy()
 ##############################################################################
+# Define bandpower windows
+##############################################################################
+
+b = co.get_NmtBin(nside)
+nells_nobin = 3 * nside
+ells_nobin = np.arange(nells_nobin)
+nbpw = b.get_n_bands()
+
+window_ar = np.zeros((nbpw, nells_nobin))
+for i in range(nbpw):
+    window_ar[i, b.get_ell_list(i)] = b.get_weight_list(i)
+
+ws_bpw = {}
+for i, tr1 in enumerate(tracer_names):
+    for j, tr2 in enumerate(tracer_names[i:], i):
+        ws = nmt.NmtWorkspace()
+        fname = os.path.join(clsdir, 'w22_{}{}.dat'.format(i+1, j+1))
+        ws.read_from(fname)
+        ws_bpw[tr1+tr2] = ws.get_bandpower_windows()
+
+ws = None
+
+##############################################################################
 # Add Noise to SACC s_noise instance
 ##############################################################################
 fname = os.path.join(clsdir, "des_sh_{}_noise_ns{}.npz".format(wltype, nside))
@@ -84,21 +94,25 @@ nls = clfile['cls']
 for i in range(ntracers_wl):
     cl_type = 'cl_ee'
     tr1 = tr2 = 'wl{}'.format(i)
+    wins = sacc.BandpowerWindow(ells_nobin, ws_bpw[tr1+tr2][0, :, 0, :].T)
     s_noise.add_ell_cl(cl_type, tr1, tr2,
                  lbpw, nls[i, 0, 0],
                  window=wins)
     cl_type = 'cl_eb'
     tr1 = tr2 = 'wl{}'.format(i)
+    wins = sacc.BandpowerWindow(ells_nobin, ws_bpw[tr1+tr2][1, :, 1, :].T)
     s_noise.add_ell_cl(cl_type, tr1, tr2,
                  lbpw, nls[i, 0, 0]*0,
                  window=wins)
     cl_type = 'cl_be'
     tr1 = tr2 = 'wl{}'.format(i)
+    wins = sacc.BandpowerWindow(ells_nobin, ws_bpw[tr1+tr2][2, :, 2, :].T)
     s_noise.add_ell_cl(cl_type, tr1, tr2,
                  lbpw, nls[i, 0, 0]*0,
                  window=wins)
     cl_type = 'cl_bb'
     tr1 = tr2 = 'wl{}'.format(i)
+    wins = sacc.BandpowerWindow(ells_nobin, ws_bpw[tr1+tr2][3, :, 3, :].T)
     s_noise.add_ell_cl(cl_type, tr1, tr2,
                  lbpw, nls[i, 1, 1],
                  window=wins)
@@ -131,6 +145,15 @@ for i, fn1 in enumerate(field_names):
         cl_type = 'cl_{}{}'.format(fn1[-1], fn2[-1])
         tr1 = fn1.split('_')[0]
         tr2 = fn2.split('_')[0]
+        if fn1[-1] + fn2[-1] == 'ee':
+            wsix = 0
+        elif fn1[-1] + fn2[-1] == 'eb':
+            wsix = 1
+        elif fn1[-1] + fn2[-1] == 'be':
+            wsix = 2
+        else:
+            wsix = 3
+        wins = sacc.BandpowerWindow(ells_nobin, ws_bpw[tr1+tr2][wsix, :, wsix, :].T)
         s.add_ell_cl(cl_type, tr1, tr2,
                      lbpw, cl_matrix[i + ntracers_gc, j + ntracers_gc],
                      window=wins)
