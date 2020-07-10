@@ -17,6 +17,8 @@ parser.add_option('--nside', dest='nside', default=4096, type=int,
                   help='HEALPix nside param')
 parser.add_option('--wltype', dest='wltype', default='metacal', type=str,
                   help='DES weak lensing shear measurement algorithm (metacal or im3shape)')
+parser.add_option('--compute_cw', dest='compute_cw', default=False, action='store_true',
+                  help='Compute covariance workspaces')
 parser.add_option('--plot', dest='plot_stuff', default=False, action='store_true',
                   help='Set if you want to produce plots')
 
@@ -225,33 +227,34 @@ for i in range(len(maps)):
 ##############################################################################
 # Generate covariance workspaces
 ##############################################################################
-cl_indices = []
-nmaps = len(maps)
-for i in range(nmaps):
-    for j in range(i, nmaps):
-        cl_indices.append([i, j])
+if o.compute_cw:
+    cl_indices = []
+    nmaps = len(maps)
+    for i in range(nmaps):
+        for j in range(i, nmaps):
+            cl_indices.append([i, j])
 
-cov_indices = []
-for i, clij in enumerate(cl_indices):
-    for j, clkl in enumerate(cl_indices[i:]):
-        cov_indices.append(cl_indices[i] + cl_indices[i + j])
+    cov_indices = []
+    for i, clij in enumerate(cl_indices):
+        for j, clkl in enumerate(cl_indices[i:]):
+            cov_indices.append(cl_indices[i] + cl_indices[i + j])
 
-for indices in cov_indices:
-    i, j, k, l = indices
-    mask1 = masks[i]
-    mask2 = masks[j]
-    mask3 = masks[k]
-    mask4 = masks[l]
-    fname = os.path.join(output_folder, 'cw{}{}{}{}.dat'.format(mask1, mask2, mask3, mask4))
-    sys.stdout.write('cw{}{}{}{}.dat\n'.format(mask1, mask2, mask3, mask4))
-    if not os.path.isfile(fname):
-        cw = nmt.NmtCovarianceWorkspace()
-        f1 = fields[i]
-        f2 = fields[j]
-        f3 = fields[k]
-        f4 = fields[l]
-        cw.compute_coupling_coefficients(f1, f2, f3, f4)
-        cw.write_to(fname)
+    for indices in cov_indices:
+        i, j, k, l = indices
+        mask1 = masks[i]
+        mask2 = masks[j]
+        mask3 = masks[k]
+        mask4 = masks[l]
+        fname = os.path.join(output_folder, 'cw{}{}{}{}.dat'.format(mask1, mask2, mask3, mask4))
+        sys.stdout.write('cw{}{}{}{}.dat\n'.format(mask1, mask2, mask3, mask4))
+        if not os.path.isfile(fname):
+            cw = nmt.NmtCovarianceWorkspace()
+            f1 = fields[i]
+            f2 = fields[j]
+            f3 = fields[k]
+            f4 = fields[l]
+            cw.compute_coupling_coefficients(f1, f2, f3, f4)
+            cw.write_to(fname)
 
 ##############################################################################
 # Compute Cls
