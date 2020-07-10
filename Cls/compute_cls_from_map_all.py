@@ -19,6 +19,10 @@ parser.add_option('--wltype', dest='wltype', default='metacal', type=str,
                   help='DES weak lensing shear measurement algorithm (metacal or im3shape)')
 parser.add_option('--compute_cw', dest='compute_cw', default=False, action='store_true',
                   help='Compute covariance workspaces')
+parser.add_option('--n_iter', dest='n_iter', default=3, type=int,
+                  help='Change n_iter in NmtFields')
+parser.add_option('--outdir', dest='outdir', default='', type=str,
+                  help='Path to save output')
 parser.add_option('--plot', dest='plot_stuff', default=False, action='store_true',
                   help='Set if you want to produce plots')
 
@@ -36,7 +40,9 @@ gc_threshold = 0.5
 data_folder = '/mnt/extraspace/damonge/S8z_data/derived_products'
 
 # Output folder
-if nside == 4096:
+if o.outdir:
+    output_folder = o.outdir
+elif nside == 4096:
     output_folder = '/mnt/extraspace/gravityls_3/S8z/Cls/all_together_{}_new'.format(wltype)
 else:
     output_folder = '/mnt/extraspace/gravityls_3/S8z/Cls/all_together_{}_{}_new'.format(wltype, nside)
@@ -193,15 +199,15 @@ spins = [0] * len(des_maps_dg) + [2] * 2 * len(des_maps_e1) + [0]
 ##############################################################################
 fields = []
 for mapi in des_maps_dg:
-    fields.append(nmt.NmtField(des_mask, [mapi]))
+    fields.append(nmt.NmtField(des_mask, [mapi], n_iter=o.n_iter))
 
 for i in range(des_maps_e1.shape[0]):
     sq = des_maps_e1[i]
     su = - des_maps_e2[i]
-    f = nmt.NmtField(des_mask_gwl[i], [sq, su])
+    f = nmt.NmtField(des_mask_gwl[i], [sq, su], n_iter=o.n_iter)
     fields += [f, f]
 
-fields.append(nmt.NmtField(planck_mask, [planck_map_kappa]))
+fields.append(nmt.NmtField(planck_mask, [planck_map_kappa], n_iter=o.n_iter))
 
 ##############################################################################
 # Generate workspaces
