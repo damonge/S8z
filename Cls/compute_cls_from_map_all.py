@@ -20,7 +20,7 @@ parser.add_option('--wltype', dest='wltype', default='metacal', type=str,
 parser.add_option('--compute_cw', dest='compute_cw', default=False, action='store_true',
                   help='Compute covariance workspaces')
 parser.add_option('--n_iter', dest='n_iter', default=3, type=int,
-                  help='Change n_iter in NmtFields')
+                  help='Change n_iter in NmtFields, Worksapces and CovarianceWorkspaces')
 parser.add_option('--outdir', dest='outdir', default='', type=str,
                   help='Path to save output')
 parser.add_option('--plot', dest='plot_stuff', default=False, action='store_true',
@@ -46,6 +46,9 @@ elif nside == 4096:
     output_folder = '/mnt/extraspace/gravityls_3/S8z/Cls/all_together_{}_new'.format(wltype)
 else:
     output_folder = '/mnt/extraspace/gravityls_3/S8z/Cls/all_together_{}_{}_new'.format(wltype, nside)
+
+if o.n_iter != 3:
+    output_folder += '_niter{}_true'.format(o.n_iter)
 os.makedirs(output_folder, exist_ok=True)
 
 ##############################################################################
@@ -225,7 +228,7 @@ for i in range(len(maps)):
             w = nmt.NmtWorkspace()
             f1 = fields[i]
             f2 = fields[j]
-            w.compute_coupling_matrix(f1, f2, b)
+            w.compute_coupling_matrix(f1, f2, b, n_iter=o.n_iter)
             w.write_to(fname)
 
         workspaces_fnames_ar.append(fname)
@@ -259,7 +262,7 @@ if o.compute_cw:
             f2 = fields[j]
             f3 = fields[k]
             f4 = fields[l]
-            cw.compute_coupling_coefficients(f1, f2, f3, f4)
+            cw.compute_coupling_coefficients(f1, f2, f3, f4, n_iter=o.n_iter)
             cw.write_to(fname)
 
 ##############################################################################
@@ -413,7 +416,8 @@ if not os.path.isfile(fname_rots) and os.path.isfile(frot):
         fname = os.path.join(output_folder, 'w22_{}{}.dat'.format(1 + ibin, 1 + ibin))
         ws.read_from(fname)
         N_wl_rot.append(co.get_shear_noise_rot(ibin, wltype, nside, nrot=nrot,
-                        mask=des_mask_gwl[ibin], opm_mean=des_opm_mean[ibin], ws=ws))
+                        mask=des_mask_gwl[ibin], opm_mean=des_opm_mean[ibin], ws=ws,
+                                               n_iter=o.n_iter))
     np.savez(fname_rots,
              l=b.get_effective_ells(), cls=N_wl_rot)
 #### End noise
