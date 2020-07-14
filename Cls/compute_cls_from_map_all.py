@@ -19,6 +19,8 @@ parser.add_option('--wltype', dest='wltype', default='metacal', type=str,
                   help='DES weak lensing shear measurement algorithm (metacal or im3shape)')
 parser.add_option('--compute_cw', dest='compute_cw', default=False, action='store_true',
                   help='Compute covariance workspaces')
+parser.add_option('--compute_cw_inv', dest='compute_cw_inv', default=False, action='store_true',
+                  help='Compute covariance workspaces in inverse order (dirty parallelization)')
 parser.add_option('--n_iter', dest='n_iter', default=3, type=int,
                   help='Change n_iter in NmtFields, Worksapces and CovarianceWorkspaces')
 parser.add_option('--outdir', dest='outdir', default='', type=str,
@@ -34,7 +36,7 @@ parser.add_option('--plot', dest='plot_stuff', default=False, action='store_true
 nside = o.nside
 wltype = o.wltype
 
-nrot = 20
+nrot = 30
 gc_threshold = 0.5
 
 data_folder = '/mnt/extraspace/damonge/S8z_data/derived_products'
@@ -236,7 +238,7 @@ for i in range(len(maps)):
 ##############################################################################
 # Generate covariance workspaces
 ##############################################################################
-if o.compute_cw:
+if o.compute_cw or o.compute_cw_inv:
     cl_indices = []
     nmaps = len(maps)
     for i in range(nmaps):
@@ -247,6 +249,9 @@ if o.compute_cw:
     for i, clij in enumerate(cl_indices):
         for j, clkl in enumerate(cl_indices[i:]):
             cov_indices.append(cl_indices[i] + cl_indices[i + j])
+
+    if o.compute_cw_inv:
+        cov_indices = cov_indices[::-1]
 
     for indices in cov_indices:
         i, j, k, l = indices
