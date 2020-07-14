@@ -35,7 +35,7 @@ def get_shear_noise(ibin, wltype, nside, survey='des', opm_mean=None):
 
     return Nell
 
-def get_shear_noise_rot(ibin, wltype, nside, nrot=10, survey='des', mask=None, opm_mean=None, ws=None):
+def get_shear_noise_rot(ibin, wltype, nside, nrot=10, survey='des', mask=None, opm_mean=None, ws=None, n_iter=3):
     if survey == 'des':
         root = '/mnt/extraspace/damonge/S8z_data/derived_products/des_shear/'
     else:
@@ -70,7 +70,7 @@ def get_shear_noise_rot(ibin, wltype, nside, nrot=10, survey='des', mask=None, o
 
         sq = map_e1
         su = -map_e2
-        f = nmt.NmtField(mask, [sq, su])
+        f = nmt.NmtField(mask, [sq, su], n_iter=n_iter)
 
         cls += ws.decouple_cell(nmt.compute_coupled_cell(f, f)).reshape((2, 2, -1))
 
