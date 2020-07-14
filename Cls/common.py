@@ -14,9 +14,10 @@ def get_NmtBin(nside):
     return b
 
 def get_opm_mean(root, ibin, wltype):
-    fname = root + 'sums_{}_bin{}.npz'.format(wltype, i)
+    fname = root + 'sums_{}_bin{}.npz'.format(wltype, ibin)
     sums = np.load(fname)
     opm_mean = sums['wopm'] / sums['w']
+    return opm_mean
 
 def get_shear_noise(ibin, wltype, nside, survey='des', opm_mean=None):
     if survey == 'des':
@@ -32,6 +33,7 @@ def get_shear_noise(ibin, wltype, nside, survey='des', opm_mean=None):
 
     # Area_pixel * <1/2 * (w^2 e_1^2 + w^2 e_2^2)>_pixels / (1 + <m>)^2
     Nell = np.ones(3 * nside) * hp.nside2pixarea(nside) * sums['w2s2'] / hp.nside2npix(nside) / opm_mean**2.
+    Nell[:2] = 0
 
     return Nell
 
