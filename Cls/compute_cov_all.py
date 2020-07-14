@@ -19,6 +19,8 @@ parser.add_argument('--nside',  default=4096, type=int,
                     help='HEALPix nside param')
 parser.add_argument('--wltype', default='metacal', type=str,
                     help='DES weak lensing shear measurement algorithm (metacal or im3shape)')
+parser.add_argument('--outdir', default='', type=str,
+                  help='Path to save output')
 parser.add_argument('--plot', default=False, action='store_true',
                     help='Set if you want to produce plots')
 
@@ -29,13 +31,15 @@ wltype = args.wltype
 nside = args.nside
 
 # Output folder
-if nside == 4096:
+if args.outdir:
+    obsdir = args.outdir
+elif nside == 4096:
     obsdir = '/mnt/extraspace/gravityls_3/S8z/Cls/all_together_{}_new'.format(wltype)
 else:
     obsdir = '/mnt/extraspace/gravityls_3/S8z/Cls/all_together_{}_{}_new'.format(wltype, nside)
 
 outdir = os.path.join(obsdir, 'cov_new_fiducial')
-os.makedirs(outdir , exist_ok=True)
+os.makedirs(outdir, exist_ok=True)
 
 ##############################################################################
 ################ Read Cls ###############
