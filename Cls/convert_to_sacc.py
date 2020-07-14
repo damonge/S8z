@@ -14,6 +14,8 @@ parser.add_argument('--nside',  default=4096, type=int,
                     help='HEALPix nside param')
 parser.add_argument('--wltype', default='metacal', type=str,
                     help='DES weak lensing shear measurement algorithm (metacal or im3shape)')
+parser.add_argument('--outdir', default='', type=str,
+                  help='Path to save output')
 parser.add_argument('--overwrite', default=False, type=bool,
                     help='Overwrite output file')
 
@@ -24,7 +26,9 @@ wltype = args.wltype
 nside = args.nside
 
 # Output folder
-if nside == 4096:
+if args.outdir:
+    clsdir = args.outdir
+elif nside == 4096:
     clsdir = '/mnt/extraspace/gravityls_3/S8z/Cls/all_together_{}_new'.format(wltype)
 else:
     clsdir = '/mnt/extraspace/gravityls_3/S8z/Cls/all_together_{}_{}_new'.format(wltype, nside)
@@ -162,32 +166,33 @@ for i, fn1 in enumerate(field_names):
 ##############################################################################
 # Add covmat
 ##############################################################################
-clmodes_index = {'ee': 0,
-                 'eb': 1,
-                 'be': 2,
-                 'bb': 3}
+if os.path.isdir(covdir):
+    clmodes_index = {'ee': 0,
+                     'eb': 1,
+                     'be': 2,
+                     'bb': 3}
 
-ncls = len(cl_tracers)
-covmat = -1 * np.ones((ncls * nbpw, ncls * nbpw))
-for i, trs1 in enumerate(cl_tracers):
-    for j, trs2 in enumerate(cl_tracers[i:], i):
-        # Get bin number
-        b1 = int(trs1[0].split('_')[0][-1]) + 5
-        b2 = int(trs1[1].split('_')[0][-1]) + 5
-        b3 = int(trs2[0].split('_')[0][-1]) + 5
-        b4 = int(trs2[1].split('_')[0][-1]) + 5
-        # Get cov matrix indexes for given modes
-        index1 = clmodes_index[trs1[0][-1] + trs1[1][-1]]
-        index2 = clmodes_index[trs2[0][-1] + trs2[1][-1]]
+    ncls = len(cl_tracers)
+    covmat = -1 * np.ones((ncls * nbpw, ncls * nbpw))
+    for i, trs1 in enumerate(cl_tracers):
+        for j, trs2 in enumerate(cl_tracers[i:], i):
+            # Get bin number
+            b1 = int(trs1[0].split('_')[0][-1]) + 5
+            b2 = int(trs1[1].split('_')[0][-1]) + 5
+            b3 = int(trs2[0].split('_')[0][-1]) + 5
+            b4 = int(trs2[1].split('_')[0][-1]) + 5
+            # Get cov matrix indexes for given modes
+            index1 = clmodes_index[trs1[0][-1] + trs1[1][-1]]
+            index2 = clmodes_index[trs2[0][-1] + trs2[1][-1]]
 
-        fname = os.path.join(covdir, 'cov_s2222_b{}{}{}{}.npz'.format(b1, b2,
-                                                                      b3, b4))
-        cov = np.load(fname)['arr_0'].reshape(nbpw, 4, nbpw, 4)[:, index1, :, index2]  # Not efficient!
+            fname = os.path.join(covdir, 'cov_s2222_b{}{}{}{}.npz'.format(b1, b2,
+                                                                          b3, b4))
+            cov = np.load(fname)['arr_0'].reshape(nbpw, 4, nbpw, 4)[:, index1, :, index2]  # Not efficient!
 
-        covmat[i * nbpw : (i+1) * nbpw, j * nbpw : (j+1) * nbpw] = cov
-        covmat[j * nbpw : (j+1) * nbpw, i * nbpw : (i+1) * nbpw] = cov.T
+            covmat[i * nbpw : (i+1) * nbpw, j * nbpw : (j+1) * nbpw] = cov
+            covmat[j * nbpw : (j+1) * nbpw, i * nbpw : (i+1) * nbpw] = cov.T
 
-s.add_covariance(covmat)
+    s.add_covariance(covmat)
 ##############################################################################
 # Save
 ##############################################################################
