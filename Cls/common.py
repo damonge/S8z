@@ -37,7 +37,7 @@ def get_shear_noise(ibin, wltype, nside, survey='des', opm_mean=None):
 
     return Nell
 
-def get_shear_noise_rot(ibin, wltype, nside, nrot=10, survey='des', mask=None, opm_mean=None, ws=None, n_iter=3):
+def get_shear_noise_rot(ibin, wltype, nside, nrot=10, survey='des', mask=None, opm_mean=None, ws=None, n_iter=3, Nl_old=None):
     if survey == 'des':
         root = '/mnt/extraspace/damonge/S8z_data/derived_products/des_shear/'
     else:
@@ -49,16 +49,26 @@ def get_shear_noise_rot(ibin, wltype, nside, nrot=10, survey='des', mask=None, o
     if opm_mean is None:
         opm_mean = get_opm_mean(root, ibin, wltype)
     if ws is None:
-        fname = '/mnt/extraspace/gravityls_3/S8z/Cls/all_together_{}_{}_new/'.format(wltype, nside)
-        fname += 'w22_{}{}.dat'.format(1 + ibin, 1 + ibin)
+        fname = '/mnt/extraspace/gravityls_3/S8z/Cls/all_together_{}_{}_new'.format(wltype, nside)
+        if n_iter != 3:
+            fname += '_niter{}_true'
+        fname += '/w22_{}{}.dat'.format(1 + ibin, 1 + ibin)
         if not os.path.isfile(fname):
             raise ValueError('Workspace not found at {}'.format(fname))
         ws = nmt.NmtWorkspace()
         ws.read_from(fname)
 
     nbpw = ws.get_bandpower_windows().shape[1]
-    cls = np.zeros((2, 2, nbpw))
+    if Nl_old is not None:
+        shape = Nl_old.shape
+        if (len(shape) != 4) or (shape[1:] != (2, 2, nbpw)):
+            raise ValueError('Nl_old must have (nrot, 2, 2, {}) shape, got {}'.format(nbpw, shape))
+    cls = np.zeros((nrot, 2, 2, nbpw))
     for irot in range(nrot):
+        if (Nl_old is not None) and (irot < Nl_old.shape[0]):
+            cls[irot] = Nl_old[irot]
+            continue
+
         map_file_e1 = os.path.join(root, 'map_{}_bin{}_rot{}_we1_ns{}.fits'.format(wltype, ibin, irot, nside))
         map_file_e2 = os.path.join(root, 'map_{}_bin{}_rot{}_we2_ns{}.fits'.format(wltype, ibin, irot, nside))
 
@@ -74,9 +84,10 @@ def get_shear_noise_rot(ibin, wltype, nside, nrot=10, survey='des', mask=None, o
         su = -map_e2
         f = nmt.NmtField(mask, [sq, su], n_iter=n_iter)
 
-        cls += ws.decouple_cell(nmt.compute_coupled_cell(f, f)).reshape((2, 2, -1))
+        cls[irot] =  ws.decouple_cell(nmt.compute_coupled_cell(f, f)).reshape((2, 2, -1))
 
-    return cls / nrot
+    cls_mean = np.sum(cls, axis=0) / nrot
+    return cls_mean, cls
 
 def get_tracer_name(ibin):
     if ibin in np.arange(5):
