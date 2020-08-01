@@ -1,4 +1,5 @@
 from __future__ import print_function
+from glob import glob
 from optparse import OptionParser
 import pymaster as nmt
 import numpy as np
@@ -23,6 +24,8 @@ parser.add_option('--compute_cw_inv', dest='compute_cw_inv', default=False, acti
                   help='Compute covariance workspaces in inverse order (dirty parallelization)')
 parser.add_option('--n_iter', dest='n_iter', default=3, type=int,
                   help='Change n_iter in NmtFields, Worksapces and CovarianceWorkspaces')
+parser.add_option('--nrot', dest='nrot', default=30, type=int,
+                  help='Number of rotated maps for shear noise bias estimations.')
 parser.add_option('--outdir', dest='outdir', default='', type=str,
                   help='Path to save output')
 parser.add_option('--plot', dest='plot_stuff', default=False, action='store_true',
@@ -36,7 +39,7 @@ parser.add_option('--plot', dest='plot_stuff', default=False, action='store_true
 nside = o.nside
 wltype = o.wltype
 
-nrot = 30
+nrot = o.nrot
 gc_threshold = 0.5
 
 data_folder = '/mnt/extraspace/damonge/S8z_data/derived_products'
@@ -415,16 +418,31 @@ np.savez(os.path.join(output_folder, "cl_all_no_noise"),
 fname_rots = os.path.join(output_folder, "des_sh_{}_rot0-{}_noise_ns{}.npz".format(wltype, nrot-1, nside))
 frot = os.path.join(des_data_folder_gwl, "map_{}_bin1_rot1_we1_ns{}.fits".format(wltype, nside))
 if not os.path.isfile(fname_rots) and os.path.isfile(frot):
-    N_wl_rot = []
+    fname_tmp = os.path.join(output_folder, "des_sh_{}_rot0-*_noise_ns{}.npz".format(wltype, nside))
+    Nl_old_files = glob(fname_tmp)
+    Nl_old = None
+    if Nl_old_files:
+        Nl_old_files.sort()
+        Nl_old_file = np.load(Nl_old_files[-1])
+        if 'cls_rots' in Nl_old_file.keys():
+            Nl_old = Nl_old_file['cls_rots']
+    N_wl_means = []
+    N_wl_rots = []
     for ibin in range(len(des_maps_e1)):
+        if Nl_old is not None:
+            Nl_old_ibin = Nl_old[ibin]
+        else:
+            Nl_old_ibin = None
         ws = nmt.NmtWorkspace()
         fname = os.path.join(output_folder, 'w22_{}{}.dat'.format(1 + ibin, 1 + ibin))
         ws.read_from(fname)
-        N_wl_rot.append(co.get_shear_noise_rot(ibin, wltype, nside, nrot=nrot,
+        N_wl_mean, N_wl_rot = co.get_shear_noise_rot(ibin, wltype, nside, nrot=nrot,
                         mask=des_mask_gwl[ibin], opm_mean=des_opm_mean[ibin], ws=ws,
-                                               n_iter=o.n_iter))
+                                               n_iter=o.n_iter, Nl_old=Nl_old_ibin)
+        N_wl_means.append(N_wl_mean)
+        N_wl_rots.append(N_wl_rot)
     np.savez(fname_rots,
-             l=b.get_effective_ells(), cls=N_wl_rot)
+             l=b.get_effective_ells(), cls=N_wl_means, cls_rots=N_wl_rots)
 #### End noise
 
 
