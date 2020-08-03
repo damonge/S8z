@@ -20,6 +20,7 @@ parser.add_argument('--wltype', default='metacal', type=str,
                     help='DES weak lensing shear measurement algorithm (metacal or im3shape)')
 parser.add_argument('--plot', default=False, action='store_true',
                     help='Set if you want to produce plots')
+parser.add_argument('--outdir', default='', type=str, help='Path to compute PSFi-ei Cls')
 
 args = parser.parse_args()
 
@@ -30,7 +31,9 @@ wltype = args.wltype
 nside = args.nside
 
 # Output folder
-if nside == 4096:
+if args.outdir:
+    output_folder = args.outdir
+elif nside == 4096:
     output_folder = '/mnt/extraspace/gravityls_3/S8z/Cls/all_together_{}_new'.format(wltype)
 else:
     output_folder = '/mnt/extraspace/gravityls_3/S8z/Cls/all_together_{}_{}_new'.format(wltype, nside)
