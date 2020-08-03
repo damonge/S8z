@@ -14,6 +14,8 @@ parser.add_option('--outdir',dest='outdir',default='./sims_gc3_wl1_all_new',type
                   help='Output directory')
 parser.add_option('--nside', dest='nside', default=512, type=int,
                   help='HEALPix nside param')
+parser.add_option('--wltype', dest='wltype', default='metacal', type=str,
+                  help='DES weak lensing shear measurement algorithm (metacal or im3shape)')
 parser.add_option('--n_iter', dest='n_iter', default=3, type=int,
                   help='n_iter for compute_coupling_matrix and compute_coupling_coefficients')
 parser.add_option('--isim-ini', dest='isim_ini', default=1, type=int,
@@ -31,14 +33,15 @@ parser.add_option('--oldcov', dest='oldcov', default=False, action='store_true',
 # Set files prefix
 prefix_out = os.path.join(o.outdir, 'run_gc3_wl1_all')
 # Set nside
-valid_nside = [512, 2048, 4096]
+valid_nside = [512, 1024, 2048, 4096]
 # wltype
-wltype = 'im3shape'
-# wltype = 'metacal'  # not for 512 with newbin
+wltype = o.wltype
 # Set root path of observations
 obs_path = '/mnt/extraspace/gravityls_3/S8z/Cls/all_together'
 if o.nside != 4096:
     obs_path += '_{}_{}_new'.format(wltype, o.nside)
+if o.n_iter != 3:
+    obs_path += '_niter{}_true'.format(o.n_iter)
 
 gc_threshold = 0
 ##############################################################################
