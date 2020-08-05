@@ -29,8 +29,8 @@ data_path = '/mnt/extraspace/damonge/S8z_data/derived_products/des_shear/'
 ##############################################################################
 def get_min_max(imap, mask, iround=False):
     if np.all(imap == mask):
-        mask = mask[mask > 0].copy()
         imin = np.min(mask)
+        mask = mask[mask > 0].copy()
         mask.sort()
         ix = round(0.99*mask.size)
         if ix < mask.size:
@@ -52,7 +52,7 @@ def get_min_max(imap, mask, iround=False):
         imax = round(imax, om)
     return imin, imax
 
-def plot_map(imap, mask, fname, lims=True):
+def plot_map(imap, mask, fname, lims=True, unseen=True):
     f = plt.figure(1, figsize=(8, 2)) #, tight_layout=True)
 
     if lims is True:
@@ -62,8 +62,9 @@ def plot_map(imap, mask, fname, lims=True):
     else:
         imin = imax = None
 
-    imap = imap.copy()
-    imap[mask <= 0] = hp.UNSEEN
+    if unseen:
+        imap = imap.copy()
+        imap[mask <= 0] = hp.UNSEEN
 
     hp.cartview(imap, fig=1, lonra=[-70, 110], latra=[-65, -35], title='',
                 margins=(0.01, 0.1, 0.01, 0.005),
@@ -82,9 +83,7 @@ map_list = [fn_psfE1, fn_psfE2, fn_we1, fn_we2]
 
 # Load and plot mask
 mask = hp.read_map(data_path + fn_mask, verbose=False)
-plot_map(mask, mask, fn_mask.replace('.fits', '.pdf'), lims=True) #(1, 5))
-import sys
-sys.exit()
+plot_map(mask, mask, fn_mask.replace('.fits', '.pdf'), lims=True, unseen=False) #(1, 5))
 
 for fname in map_list:
     imap = hp.read_map(data_path + fname, verbose=False)
