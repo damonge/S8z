@@ -52,7 +52,7 @@ def get_min_max(imap, mask, iround=False):
         imax = round(imax, om)
     return imin, imax
 
-def plot_map(imap, mask, fname, lims=True, unseen=True):
+def plot_map(imap, mask, fname, lims=True, unseen=True, cb=True):
     f = plt.figure(1, figsize=(8, 2)) #, tight_layout=True)
 
     if lims is True:
@@ -68,7 +68,7 @@ def plot_map(imap, mask, fname, lims=True, unseen=True):
 
     hp.cartview(imap, fig=1, lonra=[-70, 110], latra=[-65, -35], title='',
                 margins=(0.01, 0.1, 0.01, 0.005),
-                min=imin, max=imax)
+                min=imin, max=imax, cbar=cb)
     plt.savefig(outdir + fname)
     plt.close()
 
@@ -85,7 +85,7 @@ map_list = [fn_psfE1, fn_psfE2, fn_we1, fn_we2]
 mask = hp.read_map(data_path + fn_mask, verbose=False)
 plot_map(mask, mask, fn_mask.replace('.fits', '.pdf'), lims=True, unseen=False) #(1, 5))
 
-for fname in map_list:
+for i, fname in enumerate(map_list):
     imap = hp.read_map(data_path + fname, verbose=False)
 
     ### Maps convolved with mask
@@ -98,7 +98,13 @@ for fname in map_list:
     ### Deconvolve (i.e. divide) the mask
     imap[mask > 0] /= mask[mask > 0]
 
-    plot_map(imap, mask, fname=fname.replace('.fits', '.pdf').replace('_w', '_'), lims=True)
+    if i%2:
+        cb = True
+    else:
+        cb = False
+
+    plot_map(imap, mask, fname=fname.replace('.fits', '.pdf').replace('_w', '_'),
+             lims=True, cb=cb)
     # plt.hist(imap[mask>0], bins=60, density=True)
     # plt.savefig(outdir + fname.replace('.fits', '-hist.pdf').replace('_w', '_'))
     # plt.close()
