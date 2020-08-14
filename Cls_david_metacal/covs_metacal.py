@@ -23,17 +23,21 @@ parser.add_argument("--recompute-mcm", default=False, action='store_true',
                     help="Recompute MCM even if it exists?")
 parser.add_argument("--old-nka", default=False, action='store_true',
                     help="Use old NKA")
+parser.add_argument("--full-noise", default=False, action='store_true',
+                    help="Full noise calculation?")
 o = parser.parse_args()
 
 
 predir = '/mnt/extraspace/damonge/S8z_data/derived_products/des_shear/'
 
 npix = hp.nside2npix(o.nside)
+pix_area = 4*np.pi/npix
 
 
 printflush("Theory spectra")
 ls = np.arange(3*o.nside)
 cl0 = np.zeros(3*o.nside)
+cl1 = np.ones(3*o.nside)
 
 cosmo = ccl.Cosmology(Omega_c=0.260-0.0479,
                       Omega_b=0.0479,
@@ -42,11 +46,15 @@ cosmo = ccl.Cosmology(Omega_c=0.260-0.0479,
                       sigma8=0.821)
 
 
-def get_field(bin_no, return_mask=False):
+def get_field(bin_no, return_mask=False, mask_sigma=False):
     prefix = predir + "maps_metacal_bin%d_ns%d" % (bin_no, o.nside)
     pix = np.load(prefix + '_goodpix.npz')['pix']
     wmap = np.zeros(npix)
     wmap[pix] = np.load(prefix + '_w.npz')['w']
+    if mask_sigma:
+        wmap[pix] = np.sqrt(np.load(prefix + '_w2s2.npz')['w2s2'])
+    else:
+        wmap[pix] = np.load(prefix + '_w.npz')['w']
     if return_mask:
         return wmap
     return nmt.NmtField(wmap, [wmap, wmap], n_iter=o.n_iter)
@@ -71,7 +79,7 @@ if o.bin_b2 not in tracers:
 
 def get_cl(trs, b1, b2):
     nl = np.zeros(3*o.nside)
-    if b1 == b2:
+    if (b1 == b2) and (not o.full_noise):
         fname_nl = predir + "maps_metacal_bin%d_ns%d_nells.npz" % (b1, o.nside)
         d = np.load(fname_nl)
         nl[:2] = d['nl_cov']
@@ -118,25 +126,110 @@ fname_cmcm = predir + 'cls_metacal_cmcm_bins_'
 fname_cmcm += '%d%d_%d%d_ns%d.fits' % (o.bin_a1, o.bin_a2, o.bin_b1, o.bin_b2, o.nside)
 
 cw = nmt.NmtCovarianceWorkspace()
+fields_s = {}
+fields_n = {}
 if os.path.isfile(fname_cmcm) and not o.recompute_mcm:
     printflush(" - Reading")
     cw.read_from(fname_cmcm)
 else:
     printflush(" - Fields")
-    fields = {}
-    if o.bin_a1 not in fields:
-        fields[o.bin_a1] = get_field(o.bin_a1)
-    if o.bin_a2 not in fields:
-        fields[o.bin_a2] = get_field(o.bin_a2)
-    if o.bin_b1 not in fields:
-        fields[o.bin_b1] = get_field(o.bin_b1)
-    if o.bin_b2 not in fields:
-        fields[o.bin_b2] = get_field(o.bin_b2)
+    if o.bin_a1 not in fields_s:
+        fields_s[o.bin_a1] = get_field(o.bin_a1)
+    if o.bin_a2 not in fields_s:
+        fields_s[o.bin_a2] = get_field(o.bin_a2)
+    if o.bin_b1 not in fields_s:
+        fields_s[o.bin_b1] = get_field(o.bin_b1)
+    if o.bin_b2 not in fields_s:
+        fields_s[o.bin_b2] = get_field(o.bin_b2)
     printflush(" - Computing")
-    cw.compute_coupling_coefficients(fields[o.bin_a1], fields[o.bin_a2],
-                                     fields[o.bin_b1], fields[o.bin_b2])
+    cw.compute_coupling_coefficients(fields_s[o.bin_a1], fields_s[o.bin_a2],
+                                     fields_s[o.bin_b1], fields_s[o.bin_b2])
     cw.write_to(fname_cmcm)
+if o.full_noise:
+    printflush("CMCM - SN")
+    prefix_cmcm = predir + 'cls_metacal_cmcm_sn_bins_'
+    cw_sn = {}
 
+    def get_cw_sn(b_a, b_b, b_c):
+        name = "%d_%d%d" % (b_a, b_b, b_c)
+        name_b = "%d_%d%d" % (b_a, b_c, b_b)
+        if name in cw_sn:
+            pass
+        elif name_b in cw_sn:
+            cw_sn[name] = cw_sn[name_b]
+        else:
+            cw_sn[name] = nmt.NmtCovarianceWorkspace()
+            fname_cmcm = prefix_cmcm + name + '_ns%d.fits' % o.nside
+            fname_cmcm_b = prefix_cmcm + name_b + '_ns%d.fits' % o.nside
+            if os.path.isfile(fname_cmcm):
+                printflush(" - Reading")
+                cw_sn[name].read_from(fname_cmcm)
+            elif os.path.isfile(fname_cmcm_b):
+                printflush(" - Reading")
+                cw_sn[name].read_from(fname_cmcm_b)
+            else:
+                printflush(" - Fields")
+                if b_a not in fields_n:
+                    fields_n[b_a] = get_field(b_a, mask_sigma=True)
+                if b_b not in fields_s:
+                    fields_s[b_b] = get_field(b_b)
+                if b_c not in fields_s:
+                    fields_s[b_c] = get_field(b_c)
+                printflush(" - Computing")
+                cw_sn[name].compute_coupling_coefficients(fields_n[b_a], fields_s[b_b],
+                                                          fields_n[b_a], fields_s[b_c])
+                cw_sn[name].write_to(fname_cmcm)
+
+            
+    if o.bin_a1 == o.bin_b1:
+        get_cw_sn(o.bin_a1, o.bin_a2, o.bin_b2)
+    if o.bin_a1 == o.bin_b2:
+        get_cw_sn(o.bin_a1, o.bin_a2, o.bin_b1)
+    if o.bin_a2 == o.bin_b1:
+        get_cw_sn(o.bin_a2, o.bin_a1, o.bin_b2)
+    if o.bin_a2 == o.bin_b2:
+        get_cw_sn(o.bin_a2, o.bin_a1, o.bin_b1)
+
+
+    printflush("CMCM - NN")
+    prefix_cmcm = predir + 'cls_metacal_cmcm_nn_bins_'
+    cw_nn = {}
+
+    def get_cw_nn(b_a, b_b):
+        name = "%d_%d" % (b_a, b_b)
+        name_b = "%d_%d" % (b_b, b_a)
+        if name in cw_nn:
+            pass
+        elif name_b in cw_nn:
+            cw_nn[name] = cw_nn[name_b]
+        else:
+            cw_nn[name] = nmt.NmtCovarianceWorkspace()
+            fname_cmcm = prefix_cmcm + name + '_ns%d.fits' % o.nside
+            fname_cmcm_b = prefix_cmcm + name_b + '_ns%d.fits' % o.nside
+            if os.path.isfile(fname_cmcm):
+                printflush(" - Reading")
+                cw_nn[name].read_from(fname_cmcm)
+            elif os.path.isfile(fname_cmcm_b):
+                printflush(" - Reading")
+                cw_nn[name].read_from(fname_cmcm_b)
+            else:
+                printflush(" - Fields")
+                if b_a not in fields_n:
+                    fields_n[b_a] = get_field(b_a, mask_sigma=True)
+                if b_b not in fields_n:
+                    fields_n[b_b] = get_field(b_b, mask_sigma=True)
+                printflush(" - Computing")
+                cw_nn[name].compute_coupling_coefficients(fields_n[b_a], fields_n[b_b],
+                                                          fields_n[b_a], fields_n[b_b])
+                cw_nn[name].write_to(fname_cmcm)
+
+            
+    if (o.bin_a1 == o.bin_b1) and (o.bin_a2 == o.bin_b2):
+        get_cw_nn(o.bin_a1, o.bin_a2)
+    if (o.bin_a1 == o.bin_b2) and (o.bin_a2 == o.bin_b1):
+        get_cw_nn(o.bin_a1, o.bin_a2)
+
+        
 
 printflush("MCMs")
 fname_mcm_a = predir + 'cls_metacal_mcm_bins_'
@@ -160,10 +253,49 @@ cov = nmt.gaussian_covariance(cw, 2, 2, 2, 2,
                               clt['%d%d' % (o.bin_a2, o.bin_b1)],
                               clt['%d%d' % (o.bin_a2, o.bin_b2)],
                               wa, wb).reshape([nbpw, 4, nbpw, 4])
+if o.full_noise:
+    cl_ones = np.array([cl1, cl0, cl0, cl1])
+    cl_zeros = np.array([cl0, cl0, cl0, cl0])
+    if o.bin_a1 == o.bin_b1:
+        cov += nmt.gaussian_covariance(cw_sn['%d_%d%d' % (o.bin_a1, o.bin_a2, o.bin_b2)],
+                                       2, 2, 2, 2,
+                                       cl_ones, cl_zeros, cl_zeros,
+                                       clt['%d%d' % (o.bin_a2, o.bin_b2)],
+                                       wa, wb).reshape([nbpw, 4, nbpw, 4])*pix_area
+        if o.bin_a2 == o.bin_b2:
+            cov += nmt.gaussian_covariance(cw_nn['%d_%d' % (o.bin_a1, o.bin_a2)],
+                                           2, 2, 2, 2,
+                                           cl_ones, cl_zeros, cl_zeros, cl_ones,
+                                           wa, wb).reshape([nbpw, 4, nbpw, 4])*pix_area**2
+    if o.bin_a1 == o.bin_b2:
+        cov += nmt.gaussian_covariance(cw_sn['%d_%d%d' % (o.bin_a1, o.bin_a2, o.bin_b1)],
+                                       2, 2, 2, 2,
+                                       cl_ones, cl_zeros, cl_zeros,
+                                       clt['%d%d' % (o.bin_a2, o.bin_b1)],
+                                       wa, wb).reshape([nbpw, 4, nbpw, 4])*pix_area
+        if o.bin_a2 == o.bin_b1:
+            cov += nmt.gaussian_covariance(cw_nn['%d_%d' % (o.bin_a1, o.bin_a2)],
+                                           2, 2, 2, 2,
+                                           cl_ones, cl_zeros, cl_zeros, cl_ones,
+                                           wa, wb).reshape([nbpw, 4, nbpw, 4])*pix_area**2
+    if o.bin_a2 == o.bin_b1:
+        cov += nmt.gaussian_covariance(cw_sn['%d_%d%d' % (o.bin_a2, o.bin_a1, o.bin_b2)],
+                                       2, 2, 2, 2,
+                                       cl_ones, cl_zeros, cl_zeros,
+                                       clt['%d%d' % (o.bin_a1, o.bin_b2)],
+                                       wa, wb).reshape([nbpw, 4, nbpw, 4])*pix_area
+    if o.bin_a2 == o.bin_b2:
+        cov += nmt.gaussian_covariance(cw_sn['%d_%d%d' % (o.bin_a2, o.bin_a1, o.bin_b1)],
+                                       2, 2, 2, 2,
+                                       cl_ones, cl_zeros, cl_zeros,
+                                       clt['%d%d' % (o.bin_a1, o.bin_b1)],
+                                       wa, wb).reshape([nbpw, 4, nbpw, 4])*pix_area
 
 printflush("Writing")
 fname_cov = predir + 'cls_metacal_covar_bins_'
 if not o.old_nka:
     fname_cov += "new_nka_"
+if o.full_noise:
+    fname_cov += "full_noise_"
 fname_cov += '%d%d_%d%d_ns%d.npz' % (o.bin_a1, o.bin_a2, o.bin_b1, o.bin_b2, o.nside)
 np.savez(fname_cov, cov=cov)
