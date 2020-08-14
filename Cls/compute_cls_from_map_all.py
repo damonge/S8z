@@ -1,4 +1,5 @@
 from __future__ import print_function
+from glob import glob
 from optparse import OptionParser
 import pymaster as nmt
 import numpy as np
@@ -13,8 +14,20 @@ import common as co
 def opt_callback(option, opt, value, parser):
     setattr(parser.values, option.dest, value.split(','))
 parser = OptionParser()
-# parser.add_option('--nside', dest='nside', default=512, type=int,
-#                   help='HEALPix nside param')
+parser.add_option('--nside', dest='nside', default=4096, type=int,
+                  help='HEALPix nside param')
+parser.add_option('--wltype', dest='wltype', default='metacal', type=str,
+                  help='DES weak lensing shear measurement algorithm (metacal or im3shape)')
+parser.add_option('--compute_cw', dest='compute_cw', default=False, action='store_true',
+                  help='Compute covariance workspaces')
+parser.add_option('--compute_cw_inv', dest='compute_cw_inv', default=False, action='store_true',
+                  help='Compute covariance workspaces in inverse order (dirty parallelization)')
+parser.add_option('--n_iter', dest='n_iter', default=3, type=int,
+                  help='Change n_iter in NmtFields, Worksapces and CovarianceWorkspaces')
+parser.add_option('--nrot', dest='nrot', default=30, type=int,
+                  help='Number of rotated maps for shear noise bias estimations.')
+parser.add_option('--outdir', dest='outdir', default='', type=str,
+                  help='Path to save output')
 parser.add_option('--plot', dest='plot_stuff', default=False, action='store_true',
                   help='Set if you want to produce plots')
 
@@ -23,35 +36,31 @@ parser.add_option('--plot', dest='plot_stuff', default=False, action='store_true
 ##############################################################################
 ##############################################################################
 ##############################################################################
+nside = o.nside
+wltype = o.wltype
+
+nrot = o.nrot
 gc_threshold = 0.5
 
 data_folder = '/mnt/extraspace/damonge/S8z_data/derived_products'
-# nside = 4096
-# nside = 2048
-nside = 512
-nrot = 20
-
-wltype = 'im3shape'
-# wltype = 'metacal'
 
 # Output folder
-if nside == 4096:
+if o.outdir:
+    output_folder = o.outdir
+elif nside == 4096:
     output_folder = '/mnt/extraspace/gravityls_3/S8z/Cls/all_together_{}_new'.format(wltype)
 else:
     output_folder = '/mnt/extraspace/gravityls_3/S8z/Cls/all_together_{}_{}_new'.format(wltype, nside)
+
+if o.n_iter != 3:
+    output_folder += '_niter{}_true'.format(o.n_iter)
 os.makedirs(output_folder, exist_ok=True)
 
 ##############################################################################
 ############################## Set Binning ###################################
 ##############################################################################
 # The ells_lim_bpw
-ells = np.arange(3 * nside)
-ells_lim_bpw= np.array([0, 30, 60, 90, 120, 150, 180, 210, 240, 272, 309, 351, 398, 452, 513, 582, 661, 750, 852, 967, 1098, 1247, 1416, 1608, 1826, 2073, 2354, 2673, 3035, 3446, 3914, 4444, 5047, 5731, 6508, 7390, 8392, 9529, 10821, 12288])
-ells_lim_bpw = ells_lim_bpw[ells_lim_bpw <= 3 * nside] # 3*nside == ells[-1] + 1
-if 3*nside not in ells_lim_bpw: # Exhaust lmax --> gives same result as previous method, but adds 1 bpw (not for 4096)
-    ells_lim_bpw = np.append(ells_lim_bpw, 3*nside)
-b = nmt.NmtBin.from_edges(ells_lim_bpw[:-1], ells_lim_bpw[1:])
-
+b = co.get_NmtBin(nside)
 fname = os.path.join(output_folder, 'l_bpw.txt')
 np.savetxt(fname, b.get_effective_ells())
 ##############################################################################
@@ -115,7 +124,7 @@ for i in range(4):
 
     mask_good = mask_gwl > 0.
     mask_gwl[~mask_good] = 0.
-    opm_mean = sums['wopm'] / sums['w'] 
+    opm_mean = sums['wopm'] / sums['w']
 
     map_e1 = np.zeros_like(map_we1)
     map_e2 = np.zeros_like(map_we2)
@@ -198,15 +207,15 @@ spins = [0] * len(des_maps_dg) + [2] * 2 * len(des_maps_e1) + [0]
 ##############################################################################
 fields = []
 for mapi in des_maps_dg:
-    fields.append(nmt.NmtField(des_mask, [mapi]))
+    fields.append(nmt.NmtField(des_mask, [mapi], n_iter=o.n_iter))
 
 for i in range(des_maps_e1.shape[0]):
     sq = des_maps_e1[i]
     su = - des_maps_e2[i]
-    f = nmt.NmtField(des_mask_gwl[i], [sq, su])
+    f = nmt.NmtField(des_mask_gwl[i], [sq, su], n_iter=o.n_iter)
     fields += [f, f]
 
-fields.append(nmt.NmtField(planck_mask, [planck_map_kappa]))
+fields.append(nmt.NmtField(planck_mask, [planck_map_kappa], n_iter=o.n_iter))
 
 ##############################################################################
 # Generate workspaces
@@ -224,7 +233,7 @@ for i in range(len(maps)):
             w = nmt.NmtWorkspace()
             f1 = fields[i]
             f2 = fields[j]
-            w.compute_coupling_matrix(f1, f2, b)
+            w.compute_coupling_matrix(f1, f2, b, n_iter=o.n_iter)
             w.write_to(fname)
 
         workspaces_fnames_ar.append(fname)
@@ -232,33 +241,37 @@ for i in range(len(maps)):
 ##############################################################################
 # Generate covariance workspaces
 ##############################################################################
-# cl_indices = []
-# nmaps = len(maps)
-# for i in range(nmaps):
-#     for j in range(i, nmaps):
-#         cl_indices.append([i, j])
-# 
-# cov_indices = []
-# for i, clij in enumerate(cl_indices):
-#     for j, clkl in enumerate(cl_indices[i:]):
-#         cov_indices.append(cl_indices[i] + cl_indices[i + j])
-# 
-# for indices in cov_indices:
-#     i, j, k, l = indices
-#     mask1 = masks[i]
-#     mask2 = masks[j]
-#     mask3 = masks[k]
-#     mask4 = masks[l]
-#     fname = os.path.join(output_folder, 'cw{}{}{}{}.dat'.format(mask1, mask2, mask3, mask4))
-#     sys.stdout.write('cw{}{}{}{}.dat\n'.format(mask1, mask2, mask3, mask4))
-#     if not os.path.isfile(fname):
-#         cw = nmt.NmtCovarianceWorkspace()
-#         f1 = fields[i]
-#         f2 = fields[j]
-#         f3 = fields[k]
-#         f4 = fields[l]
-#         cw.compute_coupling_coefficients(f1, f2, f3, f4)
-#         cw.write_to(fname)
+if o.compute_cw or o.compute_cw_inv:
+    cl_indices = []
+    nmaps = len(maps)
+    for i in range(nmaps):
+        for j in range(i, nmaps):
+            cl_indices.append([i, j])
+
+    cov_indices = []
+    for i, clij in enumerate(cl_indices):
+        for j, clkl in enumerate(cl_indices[i:]):
+            cov_indices.append(cl_indices[i] + cl_indices[i + j])
+
+    if o.compute_cw_inv:
+        cov_indices = cov_indices[::-1]
+
+    for indices in cov_indices:
+        i, j, k, l = indices
+        mask1 = masks[i]
+        mask2 = masks[j]
+        mask3 = masks[k]
+        mask4 = masks[l]
+        fname = os.path.join(output_folder, 'cw{}{}{}{}.dat'.format(mask1, mask2, mask3, mask4))
+        sys.stdout.write('cw{}{}{}{}.dat\n'.format(mask1, mask2, mask3, mask4))
+        if not os.path.isfile(fname):
+            cw = nmt.NmtCovarianceWorkspace()
+            f1 = fields[i]
+            f2 = fields[j]
+            f3 = fields[k]
+            f4 = fields[l]
+            cw.compute_coupling_coefficients(f1, f2, f3, f4, n_iter=o.n_iter)
+            cw.write_to(fname)
 
 ##############################################################################
 # Compute Cls
@@ -347,17 +360,22 @@ else:
     N_ell = des_mask.sum() / hp.nside2npix(nside) / des_N_mean_srad
 
     N_bpw = []
+    N_bpw_raw = []
     ws = nmt.NmtWorkspace()
     fname = os.path.join(output_folder, 'w{}{}_{}{}.dat'.format(0, 0, 0, 0))
     ws.read_from(fname)
     for i, N_ell_mapi in enumerate(N_ell):
         N_bpw.append(ws.decouple_cell([N_ell_mapi * np.ones(3 * nside)])[0])
         cl_matrix[i, i] -= N_bpw[-1]
+        N_bpw_raw.append(N_ell_mapi * np.ones(3 * nside))
 
     N_bpw = np.array(N_bpw)
+    N_bpw_raw = np.array(N_bpw_raw)
+    noise_factor = np.mean(des_mask ** 2) * np.ones(N_ell.shape[0])
 
     np.savez(des_gc_noise_file,
-             l=b.get_effective_ells(), cls=N_bpw)
+             l=b.get_effective_ells(), cls=N_bpw, cls_raw=N_bpw_raw,
+             noise_factor=noise_factor, cls_cov=N_bpw_raw/noise_factor[:, None])
 
 # Compute DES shear noise
 
@@ -375,7 +393,7 @@ else:
         ws = nmt.NmtWorkspace()
         fname = os.path.join(output_folder, 'w22_{}{}.dat'.format(1 + ibin, 1 + ibin))
         ws.read_from(fname)
-        
+
         # Analytical
         nlee = nlbb = co.get_shear_noise(ibin, wltype, nside, opm_mean=des_opm_mean[ibin])
         nleb = nlbe = 0 * nlee
@@ -398,16 +416,33 @@ np.savez(os.path.join(output_folder, "cl_all_no_noise"),
 
 # Noise from rotated galaxies for crosscheck
 fname_rots = os.path.join(output_folder, "des_sh_{}_rot0-{}_noise_ns{}.npz".format(wltype, nrot-1, nside))
-if not os.path.isfile(fname_rots):
-    N_wl_rot = []
+frot = os.path.join(des_data_folder_gwl, "map_{}_bin1_rot1_we1_ns{}.fits".format(wltype, nside))
+if not os.path.isfile(fname_rots) and os.path.isfile(frot):
+    fname_tmp = os.path.join(output_folder, "des_sh_{}_rot0-*_noise_ns{}.npz".format(wltype, nside))
+    Nl_old_files = glob(fname_tmp)
+    Nl_old = None
+    if Nl_old_files:
+        Nl_old_files.sort()
+        Nl_old_file = np.load(Nl_old_files[-1])
+        if 'cls_rots' in Nl_old_file.keys():
+            Nl_old = Nl_old_file['cls_rots']
+    N_wl_means = []
+    N_wl_rots = []
     for ibin in range(len(des_maps_e1)):
+        if Nl_old is not None:
+            Nl_old_ibin = Nl_old[ibin]
+        else:
+            Nl_old_ibin = None
         ws = nmt.NmtWorkspace()
         fname = os.path.join(output_folder, 'w22_{}{}.dat'.format(1 + ibin, 1 + ibin))
         ws.read_from(fname)
-        N_wl_rot.append(co.get_shear_noise_rot(ibin, wltype, nside, nrot=nrot,
-                        mask=des_mask_gwl[ibin], opm_mean=des_opm_mean[ibin], ws=ws))
+        N_wl_mean, N_wl_rot = co.get_shear_noise_rot(ibin, wltype, nside, nrot=nrot,
+                        mask=des_mask_gwl[ibin], opm_mean=des_opm_mean[ibin], ws=ws,
+                                               n_iter=o.n_iter, Nl_old=Nl_old_ibin)
+        N_wl_means.append(N_wl_mean)
+        N_wl_rots.append(N_wl_rot)
     np.savez(fname_rots,
-             l=b.get_effective_ells(), cls=N_wl_rot)
+             l=b.get_effective_ells(), cls=N_wl_means, cls_rots=N_wl_rots)
 #### End noise
 
 
