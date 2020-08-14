@@ -267,7 +267,7 @@ class Cell(object):
         else:
             self.get_workspace(fields)
             self.c_ell = self.get_cl(fields)
-            self.n_ell = self.get_nl(fields)
+            self.n_ell = self.get_nl(fields, use_analytic=True)
             self.n_ell_analytic = self.get_nl(fields, use_analytic=True)
             self.c_ell_sys = self.get_xsys(fields)
             if save:
