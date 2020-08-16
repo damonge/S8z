@@ -9,8 +9,8 @@ nc=24
 
 icov=0
 ia=0
-#{0..3}
-for ba1 in 0
+
+for ba1 in {0..3}
 do
     for ba2 in {0..3}
     do
@@ -31,10 +31,11 @@ do
 		    continue
 		fi
 		comment="cv_${ba1}${ba2}_${bb1}${bb2}_${ia}_${ib}_${icov}_ns${nside}"
-		pyexec="addqueue -c ${comment} -n 1x${nc} -s -q berg -m ${mem} /usr/bin/python3"
+		#pyexec="addqueue -c ${comment} -n 1x${nc} -s -q berg -m ${mem} /usr/bin/python3"
 		#comm="${pyexec} covs_metacal.py --bin-a1 ${ba1} --bin-a2 ${ba2} --bin-b1 ${bb1} --bin-b2 ${bb2} --nside ${nside} --n-iter 0"
-		comm="${pyexec} covs_metacal_dev.py --bin-a1 ${ba1} --bin-a2 ${ba2} --bin-b1 ${bb1} --bin-b2 ${bb2} --nside ${nside} --n-iter 0 --full-noise"
-		
+		pyexec="addqueue -c ${comment} -n 1x${nc} -s -q cmb -m ${mem} /usr/bin/python3"
+		comm="${pyexec} covs_metacal.py --bin-a1 ${ba1} --bin-a2 ${ba2} --bin-b1 ${bb1} --bin-b2 ${bb2} --nside ${nside} --n-iter 0 --full-noise"
+
 		echo ${comment}
 		${comm}
 		((ib++))
