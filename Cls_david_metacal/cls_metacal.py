@@ -117,7 +117,8 @@ def get_fname_cl(irot):
 
 if o.irot_0 == -1:
     printflush("Cl")
-    cls = w.decouple_cell(nmt.compute_coupled_cell(f1, f2))
+    cls_coupled = nmt.compute_coupled_cell(f1, f2)
+    cls = w.decouple_cell(cls_coupled)
     printflush("Nl")
     if is_auto and not o.is_psf_x:
         s = np.load(prefix_map1 + '_nells.npz')
@@ -129,7 +130,7 @@ if o.irot_0 == -1:
         nls = np.zeros_like(cls)
 
     printflush("Writing")
-    np.savez(get_fname_cl(-1), ls=l_eff, cls=cls, nls=nls)
+    np.savez(get_fname_cl(-1), ls=l_eff, cls=cls, nls=nls, cls_coupled=cls_coupled)
 else:
     printflush("Rotations")
     for irot in range(o.irot_0, o.irot_f):

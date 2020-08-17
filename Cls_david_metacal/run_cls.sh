@@ -6,8 +6,11 @@
 nside=4096
 mem=5
 nc=24
-irot_0=100
-nrot=1000
+#nside=2048
+#mem=2
+#nc=24
+irot_0=0
+nrot=10
 
 for bin1 in {0..3}
 do
@@ -20,7 +23,7 @@ do
 	pyexec="addqueue -c ${comment} -n 1x${nc} -s -q cmb -m ${mem} /usr/bin/python3"
 	comm="${pyexec} cls_metacal.py --bin-number ${bin1} --bin-number-2 ${bin2} --nside ${nside} --n-iter 0"
 	echo ${comment}
-	echo ${comm}
+	${comm}
     done
 done
 
@@ -31,19 +34,19 @@ do
     pyexec="addqueue -c ${comment} -n 1x${nc} -s -q berg -m ${mem} /usr/bin/python3"
     comm="${pyexec} cls_metacal.py --bin-number ${bin1} --nside ${nside} --n-iter 0 --irot-0 ${irot_0} --irot-f ${nrot}"
     echo ${comment}
-    ${comm}
+    #${comm}
     #PSF-x
     comment="psfX_${bin1}_ns${nside}"
     pyexec="addqueue -c ${comment} -n 1x${nc} -s -q cmb -m ${mem} /usr/bin/python3"
     comm="${pyexec} cls_metacal.py --bin-number ${bin1} --nside ${nside} --n-iter 0 --is-psf-x"
     echo ${comment}
-    echo ${comm}
+    ${comm}
     #PSF-a
     comment="psfA_${bin1}_ns${nside}"
     pyexec="addqueue -c ${comment} -n 1x${nc} -s -q cmb -m ${mem} /usr/bin/python3"
     comm="${pyexec} cls_metacal.py --bin-number ${bin1} --nside ${nside} --n-iter 0 --is-psf-a"
     echo ${comment}
-    echo ${comm}
+    ${comm}
 done
 
 #usage: cls_metacal.py [-h] [--bin-number BIN_NUMBER] [--nside NSIDE]

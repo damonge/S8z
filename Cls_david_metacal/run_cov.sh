@@ -1,15 +1,17 @@
 #!/bin/bash
 
-#nside=512
-#mem=0.5
-#nc=12
-nside=4096
-mem=5
-nc=24
+nside=512
+mem=0.5
+nc=12
+#nside=4096
+#mem=5
+#nc=24
+#nside=2048
+#mem=2
+#nc=24
 
 icov=0
 ia=0
-
 for ba1 in {0..3}
 do
     for ba2 in {0..3}
@@ -31,13 +33,13 @@ do
 		    continue
 		fi
 		comment="cv_${ba1}${ba2}_${bb1}${bb2}_${ia}_${ib}_${icov}_ns${nside}"
-		#pyexec="addqueue -c ${comment} -n 1x${nc} -s -q berg -m ${mem} /usr/bin/python3"
+		#pyexec="addqueue -c ${comment} -n 1x${nc} -s -q cmb -m ${mem} /usr/bin/python3"
 		#comm="${pyexec} covs_metacal.py --bin-a1 ${ba1} --bin-a2 ${ba2} --bin-b1 ${bb1} --bin-b2 ${bb2} --nside ${nside} --n-iter 0"
-		pyexec="addqueue -c ${comment} -n 1x${nc} -s -q cmb -m ${mem} /usr/bin/python3"
+		pyexec="addqueue -c ${comment} -n 1x${nc} -s -q berg -m ${mem} /usr/bin/python3"
 		comm="${pyexec} covs_metacal.py --bin-a1 ${ba1} --bin-a2 ${ba2} --bin-b1 ${bb1} --bin-b2 ${bb2} --nside ${nside} --n-iter 0 --full-noise"
 
 		echo ${comment}
-		${comm}
+		echo ${comm}
 		((ib++))
 		((icov++))
 		#exit
@@ -61,3 +63,20 @@ done
 #  --nside NSIDE    Nside
 #  --n-iter N_ITER  n_iter
 #  --recompute-mcm  Recompute MCM even if it exists?
+
+
+
+for bn in {0..3}
+do
+    comment="cv_xpsf_${bn}_ns${nside}"
+    pyexec="addqueue -c ${comment} -n 1x${nc} -s -q cmb -m ${mem} /usr/bin/python3"
+    comm="${pyexec} covs_metacal_xPSF.py --bin-number ${bn} --nside ${nside}"
+    echo ${comment}
+    ${comm}
+done
+#optional arguments:
+#  -h, --help            show this help message and exit
+#  --bin-number BIN_NUMBER
+#                        Bin number
+#  --nside NSIDE         Nside
+
