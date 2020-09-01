@@ -1,9 +1,14 @@
 #!/usr/bin/python3
 from matplotlib import pyplot as plt
+from matplotlib.colors import ListedColormap
 import argparse
 import healpy as hp
+import matplotlib
 import numpy as np
 
+CMAP = ListedColormap(np.loadtxt("Planck_Parchment_RGB.txt")/255.)
+CMAP.set_bad("lightgray")
+###############################################################################
 
 parser = argparse.ArgumentParser(description="Plot maps for shear paper")
 parser.add_argument('--nside',  default=4096, type=int,
@@ -52,9 +57,7 @@ def get_min_max(imap, mask, iround=False):
         imax = round(imax, om)
     return imin, imax
 
-def plot_map(imap, mask, fname, lims=True, unseen=True, cb=True):
-    f = plt.figure(1, figsize=(8, 2)) #, tight_layout=True)
-
+def plot_map(imap, mask, fname, lims=True, unseen=True, cb=True, clabel=''):
     if lims is True:
         imin, imax = get_min_max(imap, mask, True)
     elif np.array(lims).size == 2:
@@ -64,12 +67,50 @@ def plot_map(imap, mask, fname, lims=True, unseen=True, cb=True):
 
     if unseen:
         imap = imap.copy()
-        imap[mask <= 0] = hp.UNSEEN
+        imap[mask <= 0] = np.nan # hp.UNSEEN
 
-    hp.cartview(imap, fig=1, lonra=[-70, 110], latra=[-65, -35], title='',
-                margins=(0.01, 0.1, 0.01, 0.005),
-                min=imin, max=imax, cbar=cb)
-    plt.savefig(outdir + fname)
+    xsize = 2000
+    ysize = int(xsize/2)
+
+    lon = np.linspace(-70, 110, xsize)
+    lat = np.linspace(-65, -35, ysize)
+    LON, LAT = np.meshgrid(lon, lat)
+    grid_pix = hp.ang2pix(nside, LON, LAT, lonlat=True)
+    grid_map = imap[grid_pix]
+
+    if cb:
+        figsize = (8, 2.5)
+    else:
+        figsize = (8, 2)
+
+    if imin == 0:
+        cmap = 'viridis'
+    else:
+        cmap = CMAP
+
+    f = plt.figure(figsize=figsize)
+    ax = f.add_subplot(111)
+    image = ax.pcolormesh(LON, LAT, grid_map[:, ::-1],
+                           vmin=imin, vmax=imax,
+                           rasterized=True, cmap=cmap)
+
+    ax.set_xlabel(r'$\mathrm{R.A.}$ [$\degree$]')
+    ax.set_ylabel(r'$\mathrm{Dec.}$ [$\degree$]')
+
+    if cb:
+        cbar = f.colorbar(image, orientation='horizontal',
+                          shrink=.6, pad=0.21, ticks=[imin, imax])
+        cbar.set_label(clabel, labelpad=-2)
+
+        # remove white space around figure
+        spacing = 0.1
+        plt.subplots_adjust(bottom=spacing, top=1-spacing/2,
+                            left=spacing/1.2, right=1-spacing/5)
+    else:
+        plt.tight_layout()
+
+    plt.grid(True)
+    f.savefig(outdir + fname)
     plt.close()
 
 ######
@@ -80,10 +121,11 @@ fn_mask = 'map_{}_bin{}_w_ns{}.fits'.format(wltype, ibin, nside)
 fn_we1 = 'map_{}_bin{}_we1_ns{}.fits'.format(wltype, ibin, nside)
 fn_we2 = 'map_{}_bin{}_we2_ns{}.fits'.format(wltype, ibin, nside)
 map_list = [fn_psfE1, fn_psfE2, fn_we1, fn_we2]
+label_list = [r'$e_{{\rm PSF}, 1}$', r'$e_{{\rm PSF}, 2}$', r'$e_1$', r'$e_2$']
 
 # Load and plot mask
 mask = hp.read_map(data_path + fn_mask, verbose=False)
-plot_map(mask, mask, fn_mask.replace('.fits', '.pdf'), lims=True, unseen=False) #(1, 5))
+plot_map(mask, mask, fn_mask.replace('.fits', '.pdf'), lims=True, unseen=False, clabel=r'$w$') #(1, 5))
 
 for i, fname in enumerate(map_list):
     imap = hp.read_map(data_path + fname, verbose=False)
@@ -98,13 +140,14 @@ for i, fname in enumerate(map_list):
     ### Deconvolve (i.e. divide) the mask
     imap[mask > 0] /= mask[mask > 0]
 
-    if i%2:
-        cb = True
-    else:
-        cb = False
+    # if i%2:
+    #     cb = True
+    # else:
+    #     cb = False
+    cb = True
 
     plot_map(imap, mask, fname=fname.replace('.fits', '.pdf').replace('_w', '_'),
-             lims=True, cb=cb)
+             lims=True, cb=cb, clabel=label_list[i])
     # plt.hist(imap[mask>0], bins=60, density=True)
     # plt.savefig(outdir + fname.replace('.fits', '-hist.pdf').replace('_w', '_'))
     # plt.close()
