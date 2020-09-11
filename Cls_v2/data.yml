@@ -1,0 +1,103 @@
+tracers:
+  # Biases from Table II of DES 5x2pt paper
+  DESgc0:
+    spin: 0
+    path: '/mnt/extraspace/damonge/S8z_data/derived_products/des_clustering/map_counts_bin0_ns4096.fits'
+    mask: '/mnt/extraspace/damonge/S8z_data/derived_products/des_clustering/mask_ns4096.fits'
+    dndz: '/mnt/extraspace/damonge/S8z_data/derived_products/des_clustering/dndz_bin0.txt'
+    bias: 1.41
+  DESgc1:
+    spin: 0
+    path: '/mnt/extraspace/damonge/S8z_data/derived_products/des_clustering/map_counts_bin1_ns4096.fits'
+    mask: '/mnt/extraspace/damonge/S8z_data/derived_products/des_clustering/mask_ns4096.fits'
+    dndz: '/mnt/extraspace/damonge/S8z_data/derived_products/des_clustering/dndz_bin1.txt'
+    bias: 1.60
+
+  DESgc2:
+    spin: 0
+    path: '/mnt/extraspace/damonge/S8z_data/derived_products/des_clustering/map_counts_bin2_ns4096.fits'
+    mask: '/mnt/extraspace/damonge/S8z_data/derived_products/des_clustering/mask_ns4096.fits'
+    dndz: '/mnt/extraspace/damonge/S8z_data/derived_products/des_clustering/dndz_bin2.txt'
+    bias: 1.60
+
+  DESgc3:
+    spin: 0
+    path: '/mnt/extraspace/damonge/S8z_data/derived_products/des_clustering/map_counts_bin3_ns4096.fits'
+    mask: '/mnt/extraspace/damonge/S8z_data/derived_products/des_clustering/mask_ns4096.fits'
+    dndz: '/mnt/extraspace/damonge/S8z_data/derived_products/des_clustering/dndz_bin3.txt'
+    bias: 1.91
+
+  DESgc4:
+    spin: 0
+    path: '/mnt/extraspace/damonge/S8z_data/derived_products/des_clustering/map_counts_bin4_ns4096.fits'
+    mask: '/mnt/extraspace/damonge/S8z_data/derived_products/des_clustering/mask_ns4096.fits'
+    dndz: '/mnt/extraspace/damonge/S8z_data/derived_products/des_clustering/dndz_bin4.txt'
+    bias: 1.96
+
+  DESwl0:
+    spin: 2
+    path1: '/mnt/extraspace/damonge/S8z_data/derived_products/des_shear/map_metacal_bin0_we1_ns4096.fits'
+    path2: '/mnt/extraspace/damonge/S8z_data/derived_products/des_shear/map_metacal_bin0_we2_ns4096.fits'
+    mask: '/mnt/extraspace/damonge/S8z_data/derived_products/des_shear/map_metacal_bin0_w_ns4096.fits'
+    dndz: '/mnt/extraspace/damonge/S8z_data/derived_products/des_shear/dndz_metacal_bin0.txt'
+
+  DESwl1:
+    spin: 2
+    path1: '/mnt/extraspace/damonge/S8z_data/derived_products/des_shear/map_metacal_bin1_we1_ns4096.fits'
+    path2: '/mnt/extraspace/damonge/S8z_data/derived_products/des_shear/map_metacal_bin1_we2_ns4096.fits'
+    mask: '/mnt/extraspace/damonge/S8z_data/derived_products/des_shear/map_metacal_bin1_w_ns4096.fits'
+    dndz: '/mnt/extraspace/damonge/S8z_data/derived_products/des_shear/dndz_metacal_bin1.txt'
+
+  DESwl2:
+    spin: 2
+    path1: '/mnt/extraspace/damonge/S8z_data/derived_products/des_shear/map_metacal_bin2_we1_ns4096.fits'
+    path2: '/mnt/extraspace/damonge/S8z_data/derived_products/des_shear/map_metacal_bin2_we2_ns4096.fits'
+    mask: '/mnt/extraspace/damonge/S8z_data/derived_products/des_shear/map_metacal_bin2_w_ns4096.fits'
+    dndz: '/mnt/extraspace/damonge/S8z_data/derived_products/des_shear/dndz_metacal_bin2.txt'
+
+  DESwl3:
+    spin: 2
+    path1: '/mnt/extraspace/damonge/S8z_data/derived_products/des_shear/map_metacal_bin3_we1_ns4096.fits'
+    path2: '/mnt/extraspace/damonge/S8z_data/derived_products/des_shear/map_metacal_bin3_we2_ns4096.fits'
+    mask: '/mnt/extraspace/damonge/S8z_data/derived_products/des_shear/map_metacal_bin3_w_ns4096.fits'
+    dndz: '/mnt/extraspace/damonge/S8z_data/derived_products/des_shear/dndz_metacal_bin3.txt'
+
+  PLAcv:
+    spin: 0
+    path: '/mnt/extraspace/damonge/S8z_data/derived_products/planck_lensing/map_kappa_ns4096.fits'
+    mask: '/mnt/extraspace/damonge/S8z_data/derived_products/planck_lensing/mask_ns4096.fits'
+    dndz: None
+
+cls:
+  # Options: all, cross, None
+  DESgc-DESgc: 'auto'
+  DESgc-DESwl: 'all'
+  DESwl-DESwl: 'all'
+  DESgc-PLAcv: 'all'
+  DESwl-PLAcv: 'all'
+  PLAcv-PLAcv: 'all'
+
+cov: 
+  fiducial:
+    # Planck 2018: Table 2 of 1807.06209
+    Omega_m: 0.3133
+    Omega_b: 0.0493
+    h: 0.6736
+    n_s: 0.9649
+    sigma8: 0.8111
+
+    #### Biases to apply to the tracers ####
+    gc_bias: True 
+    wl_m: False
+    wl_IA: False
+
+healpy:
+  niter: 0
+  nside: 4096
+
+output: '/mnt/extraspace/gravityls_3/S8z/Cls_2/'
+overwrite: False
+
+compute:
+  cls: True
+  cov: False
