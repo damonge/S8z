@@ -40,6 +40,7 @@ class Cl():
     def load_field(self, tr):
         data = self.data
         tracers = data['tracers']
+        # TODO: This can be optimize for the case mask1 == mask2
         mask = hp.read_map(tracers[tr]['mask'])
         maps = []
         if tracers[tr]['spin'] == 0:
@@ -56,7 +57,7 @@ class Cl():
         # Remove the extension
         mask1 = os.path.splitext(mask1)[0]
         mask2 = os.path.splitext(mask2)[0]
-        fname = os.path.join(self.outdir, 'w_{}_{}.fits'.format(mask1, mask2))
+        fname = os.path.join(self.outdir, 'w__{}__{}.fits'.format(mask1, mask2))
         w = nmt.NmtWorkspace()
         if not os.path.isfile(fname):
             n_iter = self.data['healpy']['n_iter']
