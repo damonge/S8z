@@ -12,8 +12,6 @@ class Cl():
         self.tr2 = tr2
         self.outdir = self.get_outdir()
         os.makedirs(self.outdir, exist_ok=True)
-        self.f1 = self.load_field(tr1)
-        self.f2 = self.load_field(tr2)
         self.b = self.get_NmtBin()
         self.ell, self.cl = self.get_ell_cl()
 
@@ -37,7 +35,7 @@ class Cl():
         b = nmt.NmtBin.from_edges(bpw_edges[:-1], bpw_edges[1:])
         return b
 
-    def load_field(self, tr):
+    def get_field(self, tr):
         data = self.data
         tracers = data['tracers']
         # TODO: This can be optimize for the case mask1 == mask2
@@ -50,6 +48,11 @@ class Cl():
             maps.append(hp.read_map(tracers[tr]['path2']))
         f = nmt.NmtField(mask, maps, n_iter=data['healpy']['n_iter'])
         return f
+
+    def load_fields(self):
+        self.f1 = self.get_field(self.tr1)
+        self.f2 = self.get_field(self.tr2)
+        return self.f1, self.f2
 
     def get_workspace(self):
         mask1 = os.path.basename(self.data['tracers'][self.tr1]['mask'])
@@ -72,8 +75,9 @@ class Cl():
         fname = os.path.join(self.outdir, 'cl_{}_{}.npz'.format(self.tr1, self.tr2))
         ell = self.b.get_effective_ells()
         if not os.path.isfile(fname):
+            f1, f2 = self.load_fields()
             w = self.get_workspace()
-            cl = w.decouple_cell(nmt.compute_coupled_cell(self.f1, self.f2))
+            cl = w.decouple_cell(nmt.compute_coupled_cell(f1, f2))
             np.savez(fname, ell=ell, cl=cl)
         else:
             cl_file = np.load(fname)
