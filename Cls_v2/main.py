@@ -1,6 +1,5 @@
 #!/usr/bin/python
 
-import argparse
 import os
 import yaml
 
@@ -64,6 +63,7 @@ def launch_cov(data):
 ##############################################################################
 
 if __name__ == "__main__":
+    import argparse
     parser = argparse.ArgumentParser(description="Compute Cls and cov from data.yml file")
     parser.add_argument('INPUT', type=str, help='Input YAML data file')
     args = parser.parse_args()
