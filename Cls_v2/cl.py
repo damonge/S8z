@@ -31,7 +31,7 @@ class Field():
             data = self.data
             tracer = data['tracers'][self.tr]
             mask = hp.read_map(tracer['mask'])
-            mask_good = mask >= tracer['threshold']
+            mask_good = mask > tracer['threshold']
             mask[~mask_good] = 0.
             self._mask = mask
         return self._mask
@@ -41,7 +41,7 @@ class Field():
             data = self.data
             tracer = data['tracers'][self.tr]
             mask = self.get_mask()
-            mask_good = mask >= tracer['threshold']
+            mask_good = mask > 0 # Already set to 0 unwnated points
             # TODO: This can be optimize for the case mask1 == mask2
             raw_maps = self.get_raw_maps()
             if self.spin == 0:
@@ -92,7 +92,7 @@ class Cl():
         self._f2 = None
         self._w = None
         ##################
-        self.ell, self.cl = self.get_ell_cl()
+        self.cl_file = self.get_cl_file()
 
 
     def get_outdir(self):
@@ -139,7 +139,7 @@ class Cl():
             w.read_from(fname)
         return w
 
-    def _compute_noise_gc(self):
+    def _compute_coupled_noise_gc(self):
         map_ng = self._f1.get_raw_maps()[0]
         map_dg = self._f1.get_maps()[0]
         mask = self._f1.get_mask()
@@ -150,39 +150,54 @@ class Cl():
         N_mean = map_ng[mask_good].sum() / mask[mask_good].sum()
         N_mean_srad = N_mean / (4 * np.pi) * npix
         N_ell = mask.sum() / npix / N_mean_srad
-        w = self.get_workspace()
-        return w.decouple_cell([N_ell * np.ones(3 * nside)])[0]
+        nl = N_ell * np.ones(3 * nside)
+        nl[:2] = 0
+        return np.array([nl])
 
-    def _compute_noise_wl(self):
-        pass
+    def _compute_coupled_noise_wl(self):
+        nside = self.data['healpy']['nside']
+        npix = hp.nside2npix(nside)
+
+        fname = self.data['tracers'][self.tr1]['sums']
+        sums = np.load(fname)
+        opm_mean = sums['wopm'] / sums['w']
+
+        N_ell = hp.nside2pixarea(nside) * sums['w2s2'] / npix / opm_mean**2.
+        nl = N_ell * np.ones(3 * nside)
+        nl[:2] = 0
+
+        return np.array([nl, 0 * nl, 0 * nl, nl])
 
 
-    def compute_noise(self):
+    def compute_coupled_noise(self):
         tracers = self.data['tracers']
-        ell = self.b.get_effective_ells()
-        if self.tr1!= self.tr2:
-            return 0 * ell
+        if self.tr1 != self.tr2:
+            nell = 3 * self.data['healpy']['nside']
+            ndim = int(tracers[self.tr1]['spin']) + int(tracers[self.tr2]['spin'])
+            if ndim == 0:
+                ndim += 1
+            return np.zeros((ndim , nell))
         elif tracers[self.tr1]['spin'] == 0:
-            return self._compute_noise_gc()
+            return self._compute_coupled_noise_gc()
         else:
-            return self._compute_noise_wl()
+            return self._compute_coupled_noise_wl()
 
-    def get_ell_cl(self):
+    def get_cl_file(self):
         fname = os.path.join(self.outdir, 'cl_{}_{}.npz'.format(self.tr1, self.tr2))
         ell = self.b.get_effective_ells()
         if not os.path.isfile(fname):
             f1, f2 = self.get_fields()
             w = self.get_workspace()
             cl = w.decouple_cell(nmt.compute_coupled_cell(f1.f, f2.f))
-            nl = self.compute_noise()
-            np.savez(fname, ell=ell, cl=cl-nl, nl=nl)
-        else:
-            cl_file = np.load(fname)
-            cl = cl_file['cl']
-            if np.any(ell != cl_file['ell']):
-                raise ValueError('The file {} does not have the expected bpw. Aborting!'.format(fname))
+            nl_cp = self.compute_coupled_noise()
+            nl = w.decouple_cell(nl_cp)
+            np.savez(fname, ell=ell, cl=cl-nl, nl=nl, nl_cp=nl_cp)
 
-        return ell, cl
+        cl_file = np.load(fname)
+        cl = cl_file['cl']
+        if np.any(ell != cl_file['ell']):
+            raise ValueError('The file {} does not have the expected bpw. Aborting!'.format(fname))
+        return cl_file
 
 
 if __name__ == "__main__":

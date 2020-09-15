@@ -6,12 +6,15 @@ tracers:
     mask: '/mnt/extraspace/damonge/S8z_data/derived_products/des_clustering/mask_ns4096.fits'
     dndz: '/mnt/extraspace/damonge/S8z_data/derived_products/des_clustering/dndz_bin0.txt'
     bias: 1.41
+    threshold: 0.5
+
   DESgc1:
     spin: 0
     path: '/mnt/extraspace/damonge/S8z_data/derived_products/des_clustering/map_counts_bin1_ns4096.fits'
     mask: '/mnt/extraspace/damonge/S8z_data/derived_products/des_clustering/mask_ns4096.fits'
     dndz: '/mnt/extraspace/damonge/S8z_data/derived_products/des_clustering/dndz_bin1.txt'
     bias: 1.60
+    threshold: 0.5
 
   DESgc2:
     spin: 0
@@ -19,6 +22,7 @@ tracers:
     mask: '/mnt/extraspace/damonge/S8z_data/derived_products/des_clustering/mask_ns4096.fits'
     dndz: '/mnt/extraspace/damonge/S8z_data/derived_products/des_clustering/dndz_bin2.txt'
     bias: 1.60
+    threshold: 0.5
 
   DESgc3:
     spin: 0
@@ -26,6 +30,7 @@ tracers:
     mask: '/mnt/extraspace/damonge/S8z_data/derived_products/des_clustering/mask_ns4096.fits'
     dndz: '/mnt/extraspace/damonge/S8z_data/derived_products/des_clustering/dndz_bin3.txt'
     bias: 1.91
+    threshold: 0.5
 
   DESgc4:
     spin: 0
@@ -33,40 +38,50 @@ tracers:
     mask: '/mnt/extraspace/damonge/S8z_data/derived_products/des_clustering/mask_ns4096.fits'
     dndz: '/mnt/extraspace/damonge/S8z_data/derived_products/des_clustering/dndz_bin4.txt'
     bias: 1.96
+    threshold: 0.5
 
   DESwl0:
     spin: 2
     path1: '/mnt/extraspace/damonge/S8z_data/derived_products/des_shear/map_metacal_bin0_we1_ns4096.fits'
     path2: '/mnt/extraspace/damonge/S8z_data/derived_products/des_shear/map_metacal_bin0_we2_ns4096.fits'
     mask: '/mnt/extraspace/damonge/S8z_data/derived_products/des_shear/map_metacal_bin0_w_ns4096.fits'
+    sums:  '/mnt/extraspace/damonge/S8z_data/derived_products/des_shear/sums_metacal_bin0.npz'
     dndz: '/mnt/extraspace/damonge/S8z_data/derived_products/des_shear/dndz_metacal_bin0.txt'
+    threshold: 0
 
   DESwl1:
     spin: 2
     path1: '/mnt/extraspace/damonge/S8z_data/derived_products/des_shear/map_metacal_bin1_we1_ns4096.fits'
     path2: '/mnt/extraspace/damonge/S8z_data/derived_products/des_shear/map_metacal_bin1_we2_ns4096.fits'
     mask: '/mnt/extraspace/damonge/S8z_data/derived_products/des_shear/map_metacal_bin1_w_ns4096.fits'
+    sums:  '/mnt/extraspace/damonge/S8z_data/derived_products/des_shear/sums_metacal_bin1.npz'
     dndz: '/mnt/extraspace/damonge/S8z_data/derived_products/des_shear/dndz_metacal_bin1.txt'
+    threshold: 0
 
   DESwl2:
     spin: 2
     path1: '/mnt/extraspace/damonge/S8z_data/derived_products/des_shear/map_metacal_bin2_we1_ns4096.fits'
     path2: '/mnt/extraspace/damonge/S8z_data/derived_products/des_shear/map_metacal_bin2_we2_ns4096.fits'
     mask: '/mnt/extraspace/damonge/S8z_data/derived_products/des_shear/map_metacal_bin2_w_ns4096.fits'
+    sums:  '/mnt/extraspace/damonge/S8z_data/derived_products/des_shear/sums_metacal_bin2.npz'
     dndz: '/mnt/extraspace/damonge/S8z_data/derived_products/des_shear/dndz_metacal_bin2.txt'
+    threshold: 0
 
   DESwl3:
     spin: 2
     path1: '/mnt/extraspace/damonge/S8z_data/derived_products/des_shear/map_metacal_bin3_we1_ns4096.fits'
     path2: '/mnt/extraspace/damonge/S8z_data/derived_products/des_shear/map_metacal_bin3_we2_ns4096.fits'
     mask: '/mnt/extraspace/damonge/S8z_data/derived_products/des_shear/map_metacal_bin3_w_ns4096.fits'
+    sums:  '/mnt/extraspace/damonge/S8z_data/derived_products/des_shear/sums_metacal_bin3.npz'
     dndz: '/mnt/extraspace/damonge/S8z_data/derived_products/des_shear/dndz_metacal_bin3.txt'
+    threshold: 0
 
   PLAcv:
     spin: 0
     path: '/mnt/extraspace/damonge/S8z_data/derived_products/planck_lensing/map_kappa_ns4096.fits'
     mask: '/mnt/extraspace/damonge/S8z_data/derived_products/planck_lensing/mask_ns4096.fits'
     dndz: None
+    threshold: 0
 
 cls:
   # Options: all, cross, None
