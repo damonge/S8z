@@ -2,6 +2,7 @@
 import common as co
 import numpy as np
 import healpy as hp
+import pyccl as ccl
 import pymaster as nmt
 import os
 import yaml
@@ -10,7 +11,7 @@ class Field():
     def __init__(self, data, tr, maps=None, mask=None):
         self.data = co.read_data(data)
         self.tr = tr
-        self.spin = self.data['tracers'][tr]['spin']
+        self.spin = int(self.data['tracers'][tr]['spin'])
         self._raw_maps = None
         self._maps = maps
         self._mask = mask
@@ -76,8 +77,6 @@ class Field():
 
         return self._raw_maps
 
-
-
 class Cl():
     def __init__(self, data, tr1, tr2):
         self._datapath = data
@@ -97,7 +96,6 @@ class Cl():
         self.cl = self.cl_file['cl']
         self.nl = self.cl_file['nl']
         self.nl_cp = self.cl_file['nl_cp']
-
 
     def get_outdir(self):
         root = self.data['output']
@@ -174,13 +172,14 @@ class Cl():
 
     def compute_coupled_noise(self):
         tracers = self.data['tracers']
+        s1, s2 = self.get_spins()
         if self.tr1 != self.tr2:
             nell = 3 * self.data['healpy']['nside']
-            ndim = int(tracers[self.tr1]['spin']) + int(tracers[self.tr2]['spin'])
+            ndim = s1+s2
             if ndim == 0:
                 ndim += 1
-            return np.zeros((ndim , nell))
-        elif tracers[self.tr1]['spin'] == 0:
+            return np.zeros((ndim, nell))
+        elif s1 == 0:
             return self._compute_coupled_noise_gc()
         else:
             return self._compute_coupled_noise_wl()
@@ -211,6 +210,17 @@ class Cl():
     def get_ell_nl_cp(self):
         return self.ell, self.nl_cp
 
+    def get_masks(self):
+        f1, f2 = self.get_fields()
+        m1 = f1.get_mask()
+        m2 = f2.get_mask()
+        return m1, m2
+
+    def get_spins(self):
+        tracers = self.data['tracers']
+        s1 = tracers[self.tr1]['spin']
+        s2 = tracers[self.tr2]['spin']
+        return int(s1), int(s2)
 
 class Cl_fid():
     def __init__(self, data, tr1, tr2):
@@ -223,7 +233,9 @@ class Cl_fid():
         self.cosmo = self.get_cosmo_ccl()
         self._ccl_tr1 = None
         self._ccl_tr2 = None
-        self.ell, self.cl = self.get_ell_cl()
+        self.cl_file = self.get_cl_file()
+        self.ell = self.cl_file['ell']
+        self.cl = self.cl_file['cl']
 
     def get_outdir(self):
         root = self.data['output']
@@ -288,26 +300,41 @@ class Cl_fid():
         else:
             raise ValueError('Type of tracer not recognized. It can be gc, wl or cv!')
 
-    def get_ell_cl(self):
+    def get_cl_file(self):
         nside = self.data['healpy']['nside']
         fname = os.path.join(self.outdir, 'cl_{}_{}.npz'.format(self.tr1, self.tr2))
+        ell = np.arange(3 * nside)
         if not os.path.isfile(fname):
-            ells = np.arange(3 * nside)
             ccl_tr1, ccl_tr2 = self.get_tracers_ccl()
-            cl = ccl.angular_cl(self.cosmo, ccl_tr1, ccl_tr2, ells)
-
+            cl = ccl.angular_cl(self.cosmo, ccl_tr1, ccl_tr2, ell)
             tracers = self.data['tracers']
             fiducial = self.data['cov']['fiducial']
             for tr in [self.tr1, self.tr2]:
                 if (tracers[tr]['type'] == 'wl') and fiducial['wl_m']:
                     cl = (1 + tracers[tr]['m']) * cl
 
-            np.savez_compressed(fname, cl=cl, ells=ells)
-        else:
-            cl_file = np.load(fname)
-            if np.any(cl_file['ells'] != ells):
-                raise ValueError('The ells in {} does not match the ells from nside={}'.format(fname, nside))
-        return ells, cl
+            s1, s2 = self.get_spins()
+            size = s1 + s2
+            if size == 0:
+                size = 1
+            cl_vector = np.zeros((size, cl.size))
+            cl_vector[0] = cl
+
+            np.savez_compressed(fname, cl=cl_vector, ell=ell)
+
+        cl_file = np.load(fname)
+        if np.any(cl_file['ell'] != ell):
+            raise ValueError('The ell in {} does not match the ell from nside={}'.format(fname, nside))
+        return cl_file
+
+    def get_ell_cl(self):
+        return self.ell, self.cl
+
+    def get_spins(self):
+        tracers = self.data['tracers']
+        s1 = tracers[self.tr1]['spin']
+        s2 = tracers[self.tr2]['spin']
+        return int(s1), int(s2)
 
 if __name__ == "__main__":
     import argparse
@@ -319,7 +346,6 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     if args.fiducial:
-        import pyccl as ccl
         cl = Cl_fid(args.INPUT, args.tr1, args.tr2)
     else:
         cl = Cl(args.INPUT, args.tr1, args.tr2)
