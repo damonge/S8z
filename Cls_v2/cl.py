@@ -151,7 +151,6 @@ class Cl():
         N_mean_srad = N_mean / (4 * np.pi) * npix
         N_ell = mask.sum() / npix / N_mean_srad
         nl = N_ell * np.ones(3 * nside)
-        nl[:2] = 0
         return np.array([nl])
 
     def _compute_coupled_noise_wl(self):
@@ -164,7 +163,7 @@ class Cl():
 
         N_ell = hp.nside2pixarea(nside) * sums['w2s2'] / npix / opm_mean**2.
         nl = N_ell * np.ones(3 * nside)
-        nl[:2] = 0
+        nl[:2] = 0  # Ylm = for l < spin
 
         return np.array([nl, 0 * nl, 0 * nl, nl])
 
