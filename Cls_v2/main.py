@@ -31,33 +31,31 @@ def get_cov_tracers(data):
     return cov_tracers
 
 
-def launch_cls(data):
+def launch_cls(data, queue):
     #######
     nc = 4
-    queue = 'cmb'
     mem = 5
     #
     cl_tracers = get_cl_tracers(data)
     for tr1, tr2 in cl_tracers:
-        comment = 'Cl({}-{})'.format(tr1, tr2)
+        comment = 'Cl_{}-{}'.format(tr1, tr2)
         pyexec = "addqueue -c {} -n 1x{} -s -q {} -m {} /usr/bin/python3".format(comment, nc, queue, mem)
-        pyrun = 'cls.py {} {} {}'.format(args.INPUT, tr1, tr2)
-        # os.system(pyexec + " " + pyrun)
-        print(pyexec + " " + pyrun)
+        pyrun = 'cl.py {} {} {}'.format(args.INPUT, tr1, tr2)
+        os.system(pyexec + " " + pyrun)
+        # print(pyexec + " " + pyrun)
 
-def launch_cov(data):
+def launch_cov(data, queue):
     #######
     nc = 10
-    queue = 'cmb'
     mem = 5
     #
     cov_tracers = get_cov_tracers(data)
     for trs in cov_tracers:
-        comment = 'Cov({}-{},{}-{})'.format(*trs)
+        comment = 'Cov_{}-{}-{}-{}'.format(*trs)
         pyexec = "addqueue -c {} -n 1x{} -s -q {} -m {} /usr/bin/python3".format(comment, nc, queue, mem)
         pyrun = 'cov.py {} {} {} {}'.format(args.INPUT, *trs)
-        # os.system(pyexec + " " + pyrun)
-        print(pyexec + " " + pyrun)
+        os.system(pyexec + " " + pyrun)
+        # print(pyexec + " " + pyrun)
 
 
 ##############################################################################
@@ -66,6 +64,8 @@ if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser(description="Compute Cls and cov from data.yml file")
     parser.add_argument('INPUT', type=str, help='Input YAML data file')
+    parser.add_argument('--queue', type=str, default='berg', help='SLURM queue to use')
+    parser.add_argument('--cov', default=False, action='store_true', help='Compute the covariances too')
     args = parser.parse_args()
 
     ##############################################################################
@@ -73,8 +73,10 @@ if __name__ == "__main__":
     with open(args.INPUT) as f:
         data = yaml.safe_load(f)
 
-    if data['compute']['cls']:
-        launch_cls(data)
+    queue = args.queue
 
-    if data['compute']['cov']:
-        launch_cov(data)
+    if data['compute']['cls']:
+        launch_cls(data, queue)
+
+    if args.cov and (data['compute']['cov']):
+        launch_cov(data, queue)
