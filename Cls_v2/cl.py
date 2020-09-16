@@ -198,6 +198,102 @@ class Cl():
             raise ValueError('The file {} does not have the expected bpw. Aborting!'.format(fname))
         return cl_file
 
+class Cl_fid():
+    def __init__(self, data, tr1, tr2):
+        self._datapath = data
+        self.data = co.read_data(data)
+        self.tr1 = tr1
+        self.tr2 = tr2
+        self.outdir = self.get_outdir()
+        os.makedirs(self.outdir, exist_ok=True)
+        self.cosmo = self.get_cosmo_ccl()
+        self._ccl_tr1 = None
+        self._ccl_tr2 = None
+        self.ell, self.cl = self.get_ell_cl()
+
+    def get_outdir(self):
+        root = self.data['output']
+        trreq = ''.join(s for s in (self.tr1 + '_' + self.tr2) if not s.isdigit())
+        outdir = os.path.join(root, 'fiducial', trreq)
+        return outdir
+
+
+    def get_cosmo_ccl(self):
+        fiducial = self.data['cov']['fiducial']
+        cosmo = ccl.Cosmology(**fiducial['cosmo'])
+        return cosmo
+
+    def get_tracers_ccl(self):
+        if self._ccl_tr1 is None:
+            self._ccl_tr1 = self.compute_tracer_ccl(self.tr1)
+            self._ccl_tr2 = self.compute_tracer_ccl(self.tr2)
+        return self._ccl_tr1, self._ccl_tr2
+
+    def compute_tracer_ccl(self, tr):
+        tracer = self.data['tracers'][tr]
+        fiducial = self.data['cov']['fiducial']
+        # Get Tracers
+        if tracer['type'] == 'gc':
+            # Import z, pz
+            z, pz = np.loadtxt(tracer['dndz'], usecols=(1, 3), unpack=True)
+            # Calculate z bias
+            dz = 0
+            z_dz = z - dz
+            # Set to 0 points where z_dz < 0:
+            sel = z_dz >= 0
+            z_dz = z_dz[sel]
+            pz = pz[sel]
+            # Calculate bias
+            bias = None
+            if fiducial['gc_bias'] is True:
+                bias = (z, tracer['bias'] * np.ones_like(z))
+            # Get tracer
+            return ccl.NumberCountsTracer(self.cosmo, has_rsd=False,
+                                          dndz=(z_dz, pz), bias=bias)
+        elif tracer['type'] == 'wl':
+            # Import z, pz
+            z, pz = np.loadtxt(tracer['dndz'], usecols=(1, 3), unpack=True)
+            # Calculate z bias
+            dz = 0
+            z_dz = z - dz
+            # Set to 0 points where z_dz < 0:
+            sel = z_dz >= 0
+            z_dz = z_dz[sel]
+            pz = pz[sel]
+            # # Calculate bias IA
+            ia_bias = None
+            if fiducial['wl_ia']:
+                A, eta, z0 = fiducial['wl_ia']  # TODO: Improve this in yml file
+                bz = A*((1.+z)/(1.+z0))**eta*0.0139/0.013872474  # pyccl2 -> has already the factor inside. Only needed bz
+                ia_bias = (z, bz)
+            # Get tracer
+            return ccl.WeakLensingTracer(self.cosmo, dndz=(z_dz, pz),
+                                         ia_bias=ia_bias)
+        elif tracer['type'] == 'cv':
+            return ccl.CMBLensingTracer(self.cosmo, z_source=1100) #TODO: correct z_source
+        else:
+            raise ValueError('Type of tracer not recognized. It can be gc, wl or cv!')
+
+    def get_ell_cl(self):
+        nside = self.data['healpy']['nside']
+        fname = os.path.join(self.outdir, 'cl_{}_{}.npz'.format(self.tr1, self.tr2))
+        if not os.path.isfile(fname):
+            ells = np.arange(3 * nside)
+            ccl_tr1, ccl_tr2 = self.get_tracers_ccl()
+            cl = ccl.angular_cl(self.cosmo, ccl_tr1, ccl_tr2, ells)
+
+            tracers = self.data['tracers']
+            fiducial = self.data['cov']['fiducial']
+            for tr in [self.tr1, self.tr2]:
+                if (tracers[tr]['type'] == 'wl') and fiducial['wl_m']:
+                    cl = (1 + tracers[tr]['m']) * cl
+
+            np.savez_compressed(fname, cl=cl, ells=ells)
+        else:
+            cl_file = np.load(fname)
+            if np.any(cl_file['ells'] != ells):
+                raise ValueError('The ells in {} does not match the ells from nside={}'.format(fname, nside))
+        return ells, cl
 
 if __name__ == "__main__":
     import argparse
@@ -205,6 +301,11 @@ if __name__ == "__main__":
     parser.add_argument('INPUT', type=str, help='Input YAML data file')
     parser.add_argument('tr1', type=str, help='Tracer 1 name')
     parser.add_argument('tr2', type=str, help='Tracer 2 name')
+    parser.add_argument('--fiducial', default=False, action='store_true', help='Compute the fiducial model Cl')
     args = parser.parse_args()
 
-    cl = Cl(args.INPUT, args.tr1, args.tr2)
+    if args.fiducial:
+        import pyccl as ccl
+        cl = Cl_fid(args.INPUT, args.tr1, args.tr2)
+    else:
+        cl = Cl(args.INPUT, args.tr1, args.tr2)
