@@ -16,7 +16,7 @@ def get_cl_tracers(data):
                 pass
             elif (clreq == 'auto') and (tr1 != tr2):
                 continue
-            elif clreq is None:
+            elif clreq == 'None':
                 continue
             cl_tracers.append((tr1, tr2))
 
