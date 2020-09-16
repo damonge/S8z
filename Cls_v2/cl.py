@@ -93,6 +93,10 @@ class Cl():
         self._w = None
         ##################
         self.cl_file = self.get_cl_file()
+        self.ell = self.cl_file['ell']
+        self.cl = self.cl_file['cl']
+        self.nl = self.cl_file['nl']
+        self.nl_cp = self.cl_file['nl_cp']
 
 
     def get_outdir(self):
@@ -197,6 +201,16 @@ class Cl():
         if np.any(ell != cl_file['ell']):
             raise ValueError('The file {} does not have the expected bpw. Aborting!'.format(fname))
         return cl_file
+
+    def get_ell_cl(self):
+        return self.ell, self.cl
+
+    def get_ell_nl(self):
+        return self.ell, self.nl
+
+    def get_ell_nl_cp(self):
+        return self.ell, self.nl_cp
+
 
 class Cl_fid():
     def __init__(self, data, tr1, tr2):
