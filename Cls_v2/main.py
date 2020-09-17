@@ -2,42 +2,15 @@
 
 import os
 import time
-import yaml
+import common as co
 
 ##############################################################################
-def get_cl_tracers(data):
-    cl_tracers = []
-    tr_names = [trn for trn in data['tracers']]
-    for i, tr1 in enumerate(tr_names):
-        for tr2 in tr_names[i:]:
-            trreq = ''.join(s for s in (tr1 + '-' + tr2) if not s.isdigit())
-            clreq =  data['cls'][trreq]
-            if clreq == 'all':
-                pass
-            elif (clreq == 'auto') and (tr1 != tr2):
-                continue
-            elif clreq == 'None':
-                continue
-            cl_tracers.append((tr1, tr2))
-
-    return cl_tracers
-
-def get_cov_tracers(data):
-    cl_tracers = get_cl_tracers(data)
-    cov_tracers = []
-    for i, trs1 in enumerate(cl_tracers):
-        for trs2 in cl_tracers[i:]:
-            cov_tracers.append((*trs1, *trs2))
-
-    return cov_tracers
-
-
 def launch_cls(data, queue, njobs):
     #######
     nc = 4
     mem = 5
     #
-    cl_tracers = get_cl_tracers(data)
+    cl_tracers = co.get_cl_tracers(data)
     outdir = data['output']
     c = 0
     for tr1, tr2 in cl_tracers:
@@ -61,10 +34,10 @@ def launch_cls(data, queue, njobs):
 
 def launch_cov(data, queue, njobs):
     #######
-    nc = 10
+    nc = 4
     mem = 5
     #
-    cov_tracers = get_cov_tracers(data)
+    cov_tracers = co.get_cov_tracers(data)
     outdir = data['output']
     c = 0
     for trs in cov_tracers:
@@ -96,8 +69,7 @@ if __name__ == "__main__":
 
     ##############################################################################
 
-    with open(args.INPUT) as f:
-        data = yaml.safe_load(f)
+    data = co.read_data(args.INPUT)
 
     queue = args.queue
     njobs = args.njobs
