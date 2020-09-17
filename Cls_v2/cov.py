@@ -94,8 +94,6 @@ class Cov():
 
         s_a1, s_a2 = self.clA1A2.get_spins()
         s_b1, s_b2 = self.clB1B2.get_spins()
-        print(s_a1, s_a2)
-        print(s_b1, s_b2)
 
         cov = nmt.gaussian_covariance(cw, s_a1, s_a2, s_b1, s_b2,
                                       cla1b1, cla1b2, cla2b1, cla2b2,

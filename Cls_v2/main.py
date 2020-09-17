@@ -26,7 +26,7 @@ def get_cov_tracers(data):
     cl_tracers = get_cl_tracers(data)
     cov_tracers = []
     for i, trs1 in enumerate(cl_tracers):
-        for trs2 in cl_tracers:
+        for trs2 in cl_tracers[i:]:
             cov_tracers.append((*trs1, *trs2))
 
     return cov_tracers
@@ -75,8 +75,7 @@ def launch_cov(data, queue, njobs):
         if os.path.isfile(fname):
             continue
         pyexec = "addqueue -c {} -n 1x{} -s -q {} -m {} /usr/bin/python3".format(comment, nc, queue, mem)
-        pyrun = 'cov.py {} {} {} {}'.format(args.INPUT, *trs)
-        print(pyexec + " " + pyrun)
+        pyrun = 'cov.py {} {} {} {} {}'.format(args.INPUT, *trs)
         os.system(pyexec + " " + pyrun)
         c += 1
         time.sleep(1)
