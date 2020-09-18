@@ -6,7 +6,7 @@ def read_data(data):
         data = yaml.safe_load(f)
     return data
 
-def get_tracers_used(data):
+def get_tracers_used(data, wsp=False):
     tracers = []
     for trk, trv in data['cls'].items():
         tr1, tr2 = trk.split('-')
@@ -20,11 +20,14 @@ def get_tracers_used(data):
         if tr_nn in tracers:
             tracers_for_cl.append(tr)
 
+    if wsp:
+        tracers_for_cl = filter_tracers_wsp(data, tracers_for_cl)
+
     return tracers_for_cl
 
-def get_cl_tracers(data):
+def get_cl_tracers(data, wsp=False):
     cl_tracers = []
-    tr_names = [trn for trn in data['tracers']]
+    tr_names = get_tracers_used(data, wsp)  # [trn for trn in data['tracers']]
     for i, tr1 in enumerate(tr_names):
         for tr2 in tr_names[i:]:
             trreq = ''.join(s for s in (tr1 + '-' + tr2) if not s.isdigit())
@@ -39,8 +42,8 @@ def get_cl_tracers(data):
 
     return cl_tracers
 
-def get_cov_tracers(data):
-    cl_tracers = get_cl_tracers(data)
+def get_cov_tracers(data, wsp=False):
+    cl_tracers = get_cl_tracers(data, wsp)
     cov_tracers = []
     for i, trs1 in enumerate(cl_tracers):
         for trs2 in cl_tracers[i:]:
@@ -48,4 +51,14 @@ def get_cov_tracers(data):
 
     return cov_tracers
 
+def filter_tracers_wsp(data, tracers):
+    tracers_torun = []
+    masks = []
+    for tr in tracers:
+        mtr = data['tracers'][tr]['mask']
+        if  mtr not in masks:
+            tracers_torun.append(tr)
+            masks.append(mtr)
+
+    return tracers_torun
 

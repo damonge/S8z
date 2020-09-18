@@ -5,12 +5,12 @@ import time
 import common as co
 
 ##############################################################################
-def launch_cls(data, queue, njobs):
+def launch_cls(data, queue, njobs, wsp=False):
     #######
     nc = 4
-    mem = 5
+    mem = 15
     #
-    cl_tracers = co.get_cl_tracers(data)
+    cl_tracers = co.get_cl_tracers(data, wsp)
     outdir = data['output']
     c = 0
     for tr1, tr2 in cl_tracers:
@@ -30,12 +30,12 @@ def launch_cls(data, queue, njobs):
         c += 1
         time.sleep(1)
 
-def launch_cov(data, queue, njobs):
+def launch_cov(data, queue, njobs, wsp=False):
     #######
     nc = 4
-    mem = 5
+    mem = 20
     #
-    cov_tracers = co.get_cov_tracers(data)
+    cov_tracers = co.get_cov_tracers(data, wsp)
     outdir = data['output']
     c = 0
     for trs in cov_tracers:
@@ -77,6 +77,8 @@ if __name__ == "__main__":
     parser.add_argument('compute', type=str, help='Compute: cls, cov or to_sacc.')
     parser.add_argument('--queue', type=str, default='berg', help='SLURM queue to use')
     parser.add_argument('--njobs', type=int, default=20, help='Maximum number of jobs to launch')
+    parser.add_argument('--wsp', default=False, action='store_true',
+                        help='Set if you want to compute the different workspaces first')
     parser.add_argument('--to_sacc_name', type=str, default='cls_cov.fits', help='Sacc file name')
     parser.add_argument('--to_sacc_use_nl', default=False, action='store_true',
                         help='Set if you want to use nl and covNG (if present) instead of cls and covG ')
@@ -90,9 +92,9 @@ if __name__ == "__main__":
     njobs = args.njobs
 
     if args.compute == 'cls':
-        launch_cls(data, queue, njobs)
+        launch_cls(data, queue, njobs, args.wsp)
     elif args.compute == 'cov':
-        launch_cov(data, queue, njobs)
+        launch_cov(data, queue, njobs, args.wsp)
     elif args.compute == 'to_sacc':
         launch_to_sacc(data, args.to_sacc_name, args.to_sacc_use_nl, queue)
     else:
