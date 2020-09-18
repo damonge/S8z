@@ -22,7 +22,6 @@ class sfile():
 
     def add_tracers(self):
         tracers = co.get_tracers_used(self.data)
-        print(tracers)
         for tr in tracers:
             self.add_tracer(tr)
 
@@ -41,15 +40,14 @@ class sfile():
         for trs in cov_tracers:
             print(trs)
             if j_end >= ndim:
-                j_ini = j_end = 0
+                i_ini = j_ini = i_end
             cov = Cov(self.datafile, *trs).cov
             ni, nj = cov.shape
-            i_end += ni
-            j_end += nj
+            i_end = i_ini + ni
+            j_end = j_ini + nj
             print(i_ini, i_end, j_ini, j_end)
             covmat[i_ini : i_end, j_ini : j_end] = cov
             covmat[j_ini : j_end, i_ini : i_end] = cov.T
-            i_ini = i_end
             j_ini = j_end
 
         self.s.add_covariance(covmat)
