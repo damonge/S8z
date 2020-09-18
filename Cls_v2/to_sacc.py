@@ -5,14 +5,16 @@ import common as co
 import numpy as np
 import sacc
 import os
+import warnings
 
 # TODO: move this to data.ylm?
 
 class sfile():
-    def __init__(self, datafile, output):
+    def __init__(self, datafile, output, use_nl=False):
         self.datafile = datafile
         self.data = co.read_data(datafile)
         self.outdir = self.data['output']
+        self.use_nl = use_nl
         self.s = sacc.Sacc()
         self.add_tracers()
         self.add_ell_cls()
@@ -31,6 +33,9 @@ class sfile():
             self.add_ell_cl(tr1, tr2)
 
     def add_covariance(self):
+        if self.use_nl:
+            warnings.warn('Adding covariance matrix with use_nl=True is not yet implemented')
+            return
         cov_tracers = co.get_cov_tracers(self.data)
         ndim = self.s.mean.size
         print(ndim)
@@ -70,7 +75,7 @@ class sfile():
         self.s.add_tracer('NZ', tr, quantity=quantity, spin=tracer['spin'],
                           z=z, nz=nz)
 
-    def add_ell_cl(self, tr1, tr2, nl=False):
+    def add_ell_cl(self, tr1, tr2):
         ells_nobin = np.arange(3 * self.data['healpy']['nside'])
         cl = Cl(self.datafile, tr1, tr2)
         w = cl.get_workspace()
@@ -87,7 +92,7 @@ class sfile():
 
 
         for i, cl_type in enumerate(cl_types):
-            if nl:
+            if self.use_nl:
                 cli = cl.nl[i]
             else:
                 cli = cl.cl[i]
@@ -97,7 +102,8 @@ if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser(description="Compute Cls and cov from data.yml file")
     parser.add_argument('INPUT', type=str, help='Input YAML data file')
-    parser.add_argument('output', type=str, help="Name of the generated sacc file. Stored in yml['output']")
+    parser.add_argument('name', type=str, help="Name of the generated sacc file. Stored in yml['output']")
+    parser.add_argument('--use_nl', action='store_true', default=False, help="Set if you want to use nl and covNG (if present) instead of cls and covG")
     args = parser.parse_args()
 
-    sfile = sfile(args.INPUT, args.output)
+    sfile = sfile(args.INPUT, args.name, args.use_nl)
