@@ -130,8 +130,3 @@ healpy:
   nside: 4096
 
 output: '/mnt/extraspace/gravityls_3/S8z/Cls_2/'
-overwrite: False
-
-compute:
-  cls: True
-  cov: False
