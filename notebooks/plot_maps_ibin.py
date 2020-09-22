@@ -5,6 +5,15 @@ import argparse
 import healpy as hp
 import matplotlib
 import numpy as np
+import os
+os.environ['PATH'] += os.pathsep + '/mnt/zfsusers/gravityls_3/codes/latex/texlive/2020/bin/x86_64-linux'
+
+#### Selection of Andrina's font config #####
+matplotlib.rcParams['font.family'] = 'serif'
+matplotlib.rcParams['font.weight'] = 'normal'
+matplotlib.rcParams['text.color'] = 'black'
+matplotlib.rcParams['text.usetex'] = True
+####
 
 CMAP = ListedColormap(np.loadtxt("Planck_Parchment_RGB.txt")/255.)
 CMAP.set_bad("lightgray")
@@ -94,9 +103,6 @@ def plot_map(imap, mask, fname, lims=True, unseen=True, cb=True, clabel=''):
                            vmin=imin, vmax=imax,
                            rasterized=True, cmap=cmap)
 
-    ax.set_xlabel(r'$\mathrm{R.A.}$ [$\degree$]')
-    ax.set_ylabel(r'$\mathrm{Dec.}$ [$\degree$]')
-
     if cb:
         cbar = f.colorbar(image, orientation='horizontal',
                           shrink=.6, pad=0.21, ticks=[imin, imax])
@@ -108,6 +114,17 @@ def plot_map(imap, mask, fname, lims=True, unseen=True, cb=True, clabel=''):
                             left=spacing/1.2, right=1-spacing/5)
     else:
         plt.tight_layout()
+
+    # Modify ticklabels after resizing
+    xtlabels = ['${:.0f}^\circ$'.format(i) for i in ax.get_xticks()]
+    ytlabels = ['${:.0f}^\circ$'.format(i) for i in ax.get_yticks()]
+
+    ax.set_xticklabels(xtlabels)
+    ax.set_yticklabels(ytlabels)
+
+    ax.set_xlabel(r'$\mathrm{RA}$')
+    ax.set_ylabel(r'$\mathrm{Dec}$')
+
 
     plt.grid(True)
     f.savefig(outdir + fname)
