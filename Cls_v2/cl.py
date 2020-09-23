@@ -143,7 +143,6 @@ class Cl():
 
     def _compute_coupled_noise_gc(self):
         map_ng = self._f1.get_raw_maps()[0]
-        map_dg = self._f1.get_maps()[0]
         mask = self._f1.get_mask()
         mask_good = mask > 0  # Already set to 0 all bad pixels in Field()
         npix = mask.size
