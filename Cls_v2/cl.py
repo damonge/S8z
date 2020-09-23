@@ -58,7 +58,7 @@ class Field():
                 map_we1, map_we2 = raw_maps
                 opm_mean = sums['wopm'] / sums['w']
 
-                maps[0, mask_good] = (map_we1[mask_good]/mask[mask_good]) / opm_mean
+                maps[0, mask_good] = -(map_we1[mask_good]/mask[mask_good]) / opm_mean
                 maps[1, mask_good] = (map_we2[mask_good]/mask[mask_good]) / opm_mean
             self._maps = maps
 
