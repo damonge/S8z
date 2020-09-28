@@ -191,18 +191,22 @@ class Cl():
 
 
     def compute_coupled_noise(self):
-        tracers = self.data['tracers']
+        tracer = self.data['tracers'][self.tr1]
         s1, s2 = self.get_spins()
+        nell = 3 * self.data['healpy']['nside']
         if self.tr1 != self.tr2:
-            nell = 3 * self.data['healpy']['nside']
             ndim = s1+s2
             if ndim == 0:
                 ndim += 1
             return np.zeros((ndim, nell))
-        elif s1 == 0:
+        elif tracer['type'] == 'gc':
             return self._compute_coupled_noise_gc()
-        else:
+        elif tracer['type'] == 'wl':
             return self._compute_coupled_noise_wl()
+        elif tracer['type'] == 'cv':
+            return np.zeros((1, nell))
+        else:
+            raise ValueError('Noise for tracer type {} not implemented'.format(tracer['type']))
 
     def get_cl_file(self):
         if self.read_symm:
