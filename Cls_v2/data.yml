@@ -91,6 +91,7 @@ tracers:
     path: '/mnt/extraspace/damonge/S8z_data/derived_products/planck_lensing/map_kappa_ns4096.fits'
     mask: '/mnt/extraspace/damonge/S8z_data/derived_products/planck_lensing/mask_ns4096.fits'
     dndz: None
+    nl: '/mnt/extraspace/damonge/S8z_data/Planck_data/COM_Lensing_4096_R3.00/MV/nlkk.dat'
     threshold: 0
 
 cls:
