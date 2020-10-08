@@ -62,9 +62,9 @@ class sfile():
                         if len(ix2) == 0:
                             continue
                         if ('b' in dt1 + dt2) and not cov_ng['has_b']:
-                            covi = np.zeros((ix1.size, ix2.size))
+                            covi = np.zeros((nbpw, nbpw))
                         else:
-                            covi = cov[np.ix_(ix1, ix2)]
+                            covi = cov[i * nbpw: (i + 1) * nbpw][:, j * nbpw: (j + 1) * nbpw]
                         covmat[np.ix_(ix1, ix2)] = covi
                         covmat[np.ix_(ix2, ix1)] = covi.T
 
