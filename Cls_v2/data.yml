@@ -132,7 +132,9 @@ cov:
     wl_ia: False  # If you want wl_ia, give [A, eta, z0] instead of True
 
 healpy:
-  n_iter: 0
+  n_iter_sht: 0
+  n_iter_mcm: 0
+  n_iter_cmcm: 0
   nside: 4096
 
 output: '/mnt/extraspace/gravityls_3/S8z/Cls_2/4096'
