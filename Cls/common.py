@@ -245,7 +245,9 @@ def load_cls_all_matrix_th_Eva():
 ###########
 
 if __name__ == '__main__':
-    output_folder = '/mnt/extraspace/gravityls_3/S8z/Cls/all_together'
+    import sys
+
+    output_folder = sys.argv[1] # '/mnt/extraspace/gravityls_3/S8z/Cls/all_together_metacal_new_niter0_onlyfields/'
 
     # ####
     # #### Unnecessary anymore. It is done in the main script.
@@ -257,9 +259,9 @@ if __name__ == '__main__':
     # cls_all = correct_minus_sign_sh(cls_all, index_sh)
     # np.savez_compressed(fname, l=lbpw, cls=cls_all)
 
-    # fname = os.path.join(output_folder,  "cl_all_no_noise.npz")
-    # cls_all_file = np.load(fname)
-    # lbpw, cls_all = cls_all_file['l'], cls_all_file['cls']
+    fname = os.path.join(output_folder,  "cl_all_no_noise.npz")
+    cls_all_file = np.load(fname)
+    lbpw, cls_all = cls_all_file['l'], cls_all_file['cls']
     # cls_all = correct_minus_sign_sh(cls_all, index_sh)
     # np.savez_compressed(fname, l=lbpw, cls=cls_all)
 
