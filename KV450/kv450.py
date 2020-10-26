@@ -20,13 +20,29 @@ class KV450():
         self.tomo_data = self._load_tomo_data()
 
     def get_psf_map(self, zbin):
-        pass
+        return self._compute_psf_map(zbin)
+
     def get_shear_map(self, zbin):
-        pass
+        return self._compute_shear_map(zbin)
+
     def get_star_map(self, zbin):
-        pass
+        return self._compute_star_map(zbin)
+
+    def get_star_mask(self, zbin):
+        return self._compute_star_mask(zbin)
+
     def get_mask(self, zbin):
-        pass
+        return self._compute_mask(zbin)
+
+    def _get_galaxy_data(self, zbin):
+        data = self.tomo_data[zbin]
+        sel = data['SG_FLAG'] == 1
+        return data[sel]
+
+    def _get_star_data(self, zbin):
+        data = self.tomo_data[zbin]
+        sel = data['SG_FLAG'] == 0
+        return data[sel]
 
     def _load_tomo_data(self):
         zedges = self.zbin_edges
@@ -38,9 +54,10 @@ class KV450():
                 sel = (data_cat['Z_B'] > zedges[i]) * (data_cat['Z_B'] <= zedges[i + 1])
                 data[i] = vstack([data[i], data_cat[sel]])
 
-        for d in data:
+        for i, d in enumerate(data):
             self._remove_additive_bias(d)
-            print(len(d))
+            self._add_ipix_to_data(d)
+            print('Tomographic bin {} has {} elements'.format(i, len(d)))
 
         return data
 
@@ -61,36 +78,67 @@ class KV450():
         return data
 
     def _remove_additive_bias(self, data):
-        print(np.mean(data['e1_correction']))
-        print(np.mean(data['e2_correction']))
-        data['e1_correction'] -= np.mean(data['e1_correction'])
-        data['e2_correction'] -= np.mean(data['e2_correction'])
+        sel_gals = data['SG_FLAG'] == 1
+        print(np.mean(data[sel_gals]['e1_correction']))
+        print(np.mean(data[sel_gals]['e2_correction']))
+        data[sel_gals]['e1_correction'] -= np.mean(data[sel_gals]['e1_correction'])
+        data[sel_gals]['e2_correction'] -= np.mean(data[sel_gals]['e2_correction'])
 
-    def _get_ipix_for_data(self, data):
-        phi = np.radians(data['RAJ2000'])
-        theta = np.radians(90 - data['DECJ2000'])
+    def _add_ipix_to_data(self, data):
+        phi = np.radians(data['ALPHA_J2000'])
+        theta = np.radians(90 - data['DELTA_J2000'])
+
 
         ipix = hp.ang2pix(self.nside, theta, phi)
-        return ipix
+        data['ipix'] = ipix
 
     def _compute_shear_map(self, zbin):
-        pass
+        data = self._get_galaxy_data(zbin)
+        we1 = np.bincount(data['ipix'], weights=data['weight']*data['e1_correction'], minlength=self.npix)
+        we2 = np.bincount(data['ipix'], weights=data['weight']*data['e2_correction'], minlength=self.npix)
+        w2s2 = np.bincount(data['ipix'], weights=data['weight']**2 * (data['e2_correction']**2 + data['e2_correction']**2), minlength=self.npix)
+
+        return we1, we2, w2s2
 
     def _compute_psf_map(self, zbin):
-        pass
+        data = self._get_galaxy_data(zbin)
+        we1 = np.bincount(data['ipix'], weights=data['weight']*data['PSF_e1'], minlength=self.npix)
+        we2 = np.bincount(data['ipix'], weights=data['weight']*data['PSF_e2'], minlength=self.npix)
+        w2s2 = np.bincount(data['ipix'], weights=data['weight']**2 * (data['PSF_e1']**2 + data['PSF_e2']**2), minlength=self.npix)
+
+        return we1, we2, w2s2
 
     def _compute_star_map(self, zbin):
-        pass
+        data = self._get_star_data(zbin)
+        counts = np.bincount(data['ipix'], minlength=self.npix)
+        return counts
+
+    def _compute_star_mask(self, zbin, w2=True):
+        data = self._get_star_data(zbin)
+        mask = np.bincount(data['ipix'], weights=data['weight'], minlength=self.npix)
+        if not w2:
+            return mask
+        w2 = np.bincount(data['ipix'], weights=data['weight']**2, minlength=self.npix)
+        return mask, w2
 
     def _compute_mask(self, zbin):
-        data = self.tomo_data[zbin]
-        ipix = self._get_ipix_for_data(data)
+        data = self._get_galaxy_data(zbin)
+        mask = np.bincount(data['ipix'], weights=data['weight'], minlength=self.npix)
+        return mask
+
 
 
 if __name__ == "__main__":
     from glob import glob
+    from matplotlib import pyplot as plt
     lsfiles = glob('/mnt/extraspace/damonge/S8z_data/KiDS_data/shear_KV450_catalog/*')
     kv450 = KV450(lsfiles)
+    we1, we2, _ = kv450.get_shear_map(0)
+    w = kv450.get_mask(0)
+    hp.mollview(we1 / w, title='KV450 - 1st zbin - e1', min=-0.1, max=0.1)
+    plt.savefig('kv450_e1.png')
+    hp.mollview(we2 / w, title='KV450 - 1st zbin - e2', min=-0.1, max=0.1)
+    plt.savefig('kv450_e2.png')
 
 
 
