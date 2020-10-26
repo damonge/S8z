@@ -48,40 +48,40 @@ tracers:
   DESwl0:
     spin: 2
     type: 'wl'
-    path1: '/mnt/extraspace/damonge/S8z_data/derived_products/des_shear/map_metacal_bin0_we1_ns4096.fits'
-    path2: '/mnt/extraspace/damonge/S8z_data/derived_products/des_shear/map_metacal_bin0_we2_ns4096.fits'
-    mask: '/mnt/extraspace/damonge/S8z_data/derived_products/des_shear/map_metacal_bin0_w_ns4096.fits'
-    sums:  '/mnt/extraspace/damonge/S8z_data/derived_products/des_shear/sums_metacal_bin0.npz'
+    path1: '/mnt/extraspace/gravityls_3/S8z/data/derived_products/des_shear/map_metacal_bin0_we1_ns4096.fits'
+    path2: '/mnt/extraspace/gravityls_3/S8z/data/derived_products/des_shear/map_metacal_bin0_we2_ns4096.fits'
+    mask: '/mnt/extraspace/gravityls_3/S8z/data/derived_products/des_shear/map_metacal_bin0_w_ns4096.fits'
+    sums:  '/mnt/extraspace/gravityls_3/S8z/data/derived_products/des_shear/sums_metacal_bin0.npz'
     dndz: '/mnt/extraspace/damonge/S8z_data/derived_products/des_shear/dndz_metacal_bin0.txt'
     threshold: 0
 
   DESwl1:
     spin: 2
     type: 'wl'
-    path1: '/mnt/extraspace/damonge/S8z_data/derived_products/des_shear/map_metacal_bin1_we1_ns4096.fits'
-    path2: '/mnt/extraspace/damonge/S8z_data/derived_products/des_shear/map_metacal_bin1_we2_ns4096.fits'
-    mask: '/mnt/extraspace/damonge/S8z_data/derived_products/des_shear/map_metacal_bin1_w_ns4096.fits'
-    sums:  '/mnt/extraspace/damonge/S8z_data/derived_products/des_shear/sums_metacal_bin1.npz'
+    path1: '/mnt/extraspace/gravityls_3/S8z/data/derived_products/des_shear/map_metacal_bin1_we1_ns4096.fits'
+    path2: '/mnt/extraspace/gravityls_3/S8z/data/derived_products/des_shear/map_metacal_bin1_we2_ns4096.fits'
+    mask: '/mnt/extraspace/gravityls_3/S8z/data/derived_products/des_shear/map_metacal_bin1_w_ns4096.fits'
+    sums:  '/mnt/extraspace/gravityls_3/S8z/data/derived_products/des_shear/sums_metacal_bin1.npz'
     dndz: '/mnt/extraspace/damonge/S8z_data/derived_products/des_shear/dndz_metacal_bin1.txt'
     threshold: 0
 
   DESwl2:
     spin: 2
     type: 'wl'
-    path1: '/mnt/extraspace/damonge/S8z_data/derived_products/des_shear/map_metacal_bin2_we1_ns4096.fits'
-    path2: '/mnt/extraspace/damonge/S8z_data/derived_products/des_shear/map_metacal_bin2_we2_ns4096.fits'
-    mask: '/mnt/extraspace/damonge/S8z_data/derived_products/des_shear/map_metacal_bin2_w_ns4096.fits'
-    sums:  '/mnt/extraspace/damonge/S8z_data/derived_products/des_shear/sums_metacal_bin2.npz'
+    path1: '/mnt/extraspace/gravityls_3/S8z/data/derived_products/des_shear/map_metacal_bin2_we1_ns4096.fits'
+    path2: '/mnt/extraspace/gravityls_3/S8z/data/derived_products/des_shear/map_metacal_bin2_we2_ns4096.fits'
+    mask: '/mnt/extraspace/gravityls_3/S8z/data/derived_products/des_shear/map_metacal_bin2_w_ns4096.fits'
+    sums:  '/mnt/extraspace/gravityls_3/S8z/data/derived_products/des_shear/sums_metacal_bin2.npz'
     dndz: '/mnt/extraspace/damonge/S8z_data/derived_products/des_shear/dndz_metacal_bin2.txt'
     threshold: 0
 
   DESwl3:
     spin: 2
     type: 'wl'
-    path1: '/mnt/extraspace/damonge/S8z_data/derived_products/des_shear/map_metacal_bin3_we1_ns4096.fits'
-    path2: '/mnt/extraspace/damonge/S8z_data/derived_products/des_shear/map_metacal_bin3_we2_ns4096.fits'
-    mask: '/mnt/extraspace/damonge/S8z_data/derived_products/des_shear/map_metacal_bin3_w_ns4096.fits'
-    sums:  '/mnt/extraspace/damonge/S8z_data/derived_products/des_shear/sums_metacal_bin3.npz'
+    path1: '/mnt/extraspace/gravityls_3/S8z/data/derived_products/des_shear/map_metacal_bin3_we1_ns4096.fits'
+    path2: '/mnt/extraspace/gravityls_3/S8z/data/derived_products/des_shear/map_metacal_bin3_we2_ns4096.fits'
+    mask: '/mnt/extraspace/gravityls_3/S8z/data/derived_products/des_shear/map_metacal_bin3_w_ns4096.fits'
+    sums:  '/mnt/extraspace/gravityls_3/S8z/data/derived_products/des_shear/sums_metacal_bin3.npz'
     dndz: '/mnt/extraspace/damonge/S8z_data/derived_products/des_shear/dndz_metacal_bin3.txt'
     threshold: 0
 
@@ -137,4 +137,4 @@ healpy:
   n_iter_cmcm: 3
   nside: 4096
 
-output: '/mnt/extraspace/gravityls_3/S8z/Cls_2/4096'
+output: '/mnt/extraspace/gravityls_3/S8z/Cls_2/4096_asDavid'

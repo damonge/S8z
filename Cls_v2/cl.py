@@ -56,12 +56,12 @@ class Field():
                 maps[0] = map_dg
             elif self.type == 'wl':
                 maps = np.zeros((2, mask.size))
-                sums = np.load(tracer['sums'])
+                # sums = np.load(tracer['sums'])
                 map_we1, map_we2 = raw_maps
-                opm_mean = sums['wopm'] / sums['w']
+                # opm_mean = sums['wopm'] / sums['w'] # Already subtracted form map
 
-                maps[0, mask_good] = -(map_we1[mask_good]/mask[mask_good]) / opm_mean
-                maps[1, mask_good] = (map_we2[mask_good]/mask[mask_good]) / opm_mean
+                maps[0, mask_good] = -(map_we1[mask_good]/mask[mask_good]) # / opm_mean
+                maps[1, mask_good] = (map_we2[mask_good]/mask[mask_good]) # / opm_mean
             elif self.type == 'cv':
                 maps = raw_maps
             else:
@@ -181,9 +181,9 @@ class Cl():
 
         fname = self.data['tracers'][self.tr1]['sums']
         sums = np.load(fname)
-        opm_mean = sums['wopm'] / sums['w']
+        # opm_mean = sums['wopm'] / sums['w'] # Already subtracted from map
 
-        N_ell = hp.nside2pixarea(nside) * sums['w2s2'] / npix / opm_mean**2.
+        N_ell = hp.nside2pixarea(nside) * sums['w2s2'] / npix # / opm_mean**2.
         nl = N_ell * np.ones(3 * nside)
         nl[:2] = 0  # Ylm = for l < spin
 
