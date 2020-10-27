@@ -13,7 +13,7 @@ class KV450():
         self.column_names = ['SG_FLAG', 'GAAP_Flag_ugriZYJHKs',
                              'Z_B', 'Z_B_MIN', 'Z_B_MAX',
                              'ALPHA_J2000', 'DELTA_J2000', 'PSF_e1', 'PSF_e2',
-                             'e1_correction', 'e2_correction',
+                             'bias_corrected_e1', 'bias_corrected_e2',
                              'weight']
         self.zbin_edges = np.array([0.1, 0.3, 0.5, 0.7, 0.9, 1.2])
         # tomo_data has <c> removed per tile and tomo
@@ -52,10 +52,12 @@ class KV450():
             data_cat = self._load_data_from_catalog(catalog)
             for i in range(zedges.size - 1):
                 sel = (data_cat['Z_B'] > zedges[i]) * (data_cat['Z_B'] <= zedges[i + 1])
-                data[i] = vstack([data[i], data_cat[sel]])
+                data_zbin = data_cat[sel]
+                self._remove_additive_bias(data_zbin)
+                data[i] = vstack([data[i], data_zbin])
 
         for i, d in enumerate(data):
-            self._remove_additive_bias(d)
+            self._remove_multiplicative_bias(d, i)
             self._add_ipix_to_data(d)
             print('Tomographic bin {} has {} elements'.format(i, len(d)))
 
@@ -73,16 +75,24 @@ class KV450():
             data = data[mask]
 
         # DataFrame modified directly
-        self._remove_additive_bias(data)
+        # self._remove_additive_bias(data)
 
         return data
 
     def _remove_additive_bias(self, data):
         sel_gals = data['SG_FLAG'] == 1
-        print(np.mean(data[sel_gals]['e1_correction']))
-        print(np.mean(data[sel_gals]['e2_correction']))
-        data[sel_gals]['e1_correction'] -= np.mean(data[sel_gals]['e1_correction'])
-        data[sel_gals]['e2_correction'] -= np.mean(data[sel_gals]['e2_correction'])
+        print(np.mean(data[sel_gals]['bias_corrected_e1']))
+        print(np.mean(data[sel_gals]['bias_corrected_e2']))
+        data[sel_gals]['bias_corrected_e1'] -= np.mean(data[sel_gals]['bias_corrected_e1'])
+        data[sel_gals]['bias_corrected_e2'] -= np.mean(data[sel_gals]['bias_corrected_e2'])
+
+    def _remove_multiplicative_bias(self, data, zbin):
+        # Values from Table 2 of 1812.06076 (KV450 cosmo paper)
+        m = (-0.017, -0.008, -0.015, 0.010, 0.006)
+        sel_gals = data['SG_FLAG'] == 1
+        data[sel_gals]['bias_corrected_e1'] /= 1 + m[zbin]
+        data[sel_gals]['bias_corrected_e2'] /= 1 + m[zbin]
+
 
     def _add_ipix_to_data(self, data):
         phi = np.radians(data['ALPHA_J2000'])
@@ -94,9 +104,9 @@ class KV450():
 
     def _compute_shear_map(self, zbin):
         data = self._get_galaxy_data(zbin)
-        we1 = np.bincount(data['ipix'], weights=data['weight']*data['e1_correction'], minlength=self.npix)
-        we2 = np.bincount(data['ipix'], weights=data['weight']*data['e2_correction'], minlength=self.npix)
-        w2s2 = np.bincount(data['ipix'], weights=data['weight']**2 * (data['e2_correction']**2 + data['e2_correction']**2), minlength=self.npix)
+        we1 = np.bincount(data['ipix'], weights=data['weight']*data['bias_corrected_e1'], minlength=self.npix)
+        we2 = np.bincount(data['ipix'], weights=data['weight']*data['bias_corrected_e2'], minlength=self.npix)
+        w2s2 = np.bincount(data['ipix'], weights=data['weight']**2 * (data['bias_corrected_e2']**2 + data['bias_corrected_e2']**2), minlength=self.npix)
 
         return we1, we2, w2s2
 
@@ -135,9 +145,9 @@ if __name__ == "__main__":
     kv450 = KV450(lsfiles)
     we1, we2, _ = kv450.get_shear_map(0)
     w = kv450.get_mask(0)
-    hp.mollview(we1 / w, title='KV450 - 1st zbin - e1', min=-0.1, max=0.1)
+    hp.mollview(we1 / w, title='KV450 - 1st zbin - e1') # min=-0.1, max=0.3)
     plt.savefig('kv450_e1.png')
-    hp.mollview(we2 / w, title='KV450 - 1st zbin - e2', min=-0.1, max=0.1)
+    hp.mollview(we2 / w, title='KV450 - 1st zbin - e2') # min=-0.1, max=0.1)
     plt.savefig('kv450_e2.png')
 
 
