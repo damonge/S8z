@@ -70,6 +70,10 @@ class Field():
 
         return self._maps
 
+    def get_w2_map(self):
+        tracer = self.data['tracers'][self.tr]
+        return hp.read_map(tracer['w2map'])
+
     def get_raw_maps(self):
         tracer = self.data['tracers'][self.tr]
         if self._raw_maps is None:
@@ -162,16 +166,20 @@ class Cl():
             w.read_from(fname)
         return w
 
-    def _compute_coupled_noise_gc(self):
-        map_ng = self._f1.get_raw_maps()[0]
+    def _compute_coupled_noise_gc(self, new_noise=True):
+        map_w = self._f1.get_raw_maps()[0]
         mask = self._f1.get_mask()
         mask_good = mask > 0  # Already set to 0 all bad pixels in Field()
         npix = mask.size
         nside = hp.npix2nside(npix)
 
-        N_mean = map_ng[mask_good].sum() / mask[mask_good].sum()
+        N_mean = map_w[mask_good].sum() / mask[mask_good].sum()
         N_mean_srad = N_mean / (4 * np.pi) * npix
         N_ell = mask.sum() / npix / N_mean_srad
+        if new_noise:
+            map_w2 = self._f1.get_w2_map()
+            correction = map_w2[mask_good].sum() / map_w[mask_good].sum()
+            N_ell *= correction
         nl = N_ell * np.ones(3 * nside)
         return np.array([nl])
 
