@@ -5,8 +5,9 @@ import healpy as hp
 import pandas as pd
 
 class KV450():
-    def __init__(self, catalog_list, nside=4096, band9=True):
+    def __init__(self, catalog_list, nside=4096, band9=True, dndz_list=None):
         self.catalog_list = catalog_list
+        self.dndz_list = dndz_list
         self.nside = nside
         self.npix = hp.nside2npix(nside)
         self.band9 = band9
@@ -33,6 +34,11 @@ class KV450():
 
     def get_mask(self, zbin):
         return self._compute_mask(zbin)
+
+    def get_nzdz(self, zbin):
+        if self.dndz_list is None:
+            raise ValueError('If you want to get_nzdz you need to provide dndz_list')
+        return self._read_nzdz(zbin)
 
     def _get_galaxy_data(self, zbin):
         data = self.tomo_data[zbin]
@@ -98,7 +104,6 @@ class KV450():
         phi = np.radians(data['ALPHA_J2000'])
         theta = np.radians(90 - data['DELTA_J2000'])
 
-
         ipix = hp.ang2pix(self.nside, theta, phi)
         data['ipix'] = ipix
 
@@ -106,7 +111,7 @@ class KV450():
         data = self._get_galaxy_data(zbin)
         we1 = np.bincount(data['ipix'], weights=data['weight']*data['bias_corrected_e1'], minlength=self.npix)
         we2 = np.bincount(data['ipix'], weights=data['weight']*data['bias_corrected_e2'], minlength=self.npix)
-        w2s2 = np.bincount(data['ipix'], weights=data['weight']**2 * (data['bias_corrected_e2']**2 + data['bias_corrected_e2']**2), minlength=self.npix)
+        w2s2 = np.bincount(data['ipix'], weights=data['weight']**2 * 0.5 * (data['bias_corrected_e1']**2 + data['bias_corrected_e2']**2), minlength=self.npix)
 
         return we1, we2, w2s2
 
@@ -114,7 +119,7 @@ class KV450():
         data = self._get_galaxy_data(zbin)
         we1 = np.bincount(data['ipix'], weights=data['weight']*data['PSF_e1'], minlength=self.npix)
         we2 = np.bincount(data['ipix'], weights=data['weight']*data['PSF_e2'], minlength=self.npix)
-        w2s2 = np.bincount(data['ipix'], weights=data['weight']**2 * (data['PSF_e1']**2 + data['PSF_e2']**2), minlength=self.npix)
+        w2s2 = np.bincount(data['ipix'], weights=data['weight']**2 * 0.5 * (data['PSF_e1']**2 + data['PSF_e2']**2), minlength=self.npix)
 
         return we1, we2, w2s2
 
@@ -136,6 +141,11 @@ class KV450():
         mask = np.bincount(data['ipix'], weights=data['weight'], minlength=self.npix)
         return mask
 
+    def _read_nzdz(self, zbin):
+        return np.loadtxt(self.dndz_list[zbin], unpack=True)
+
+
+
 
 
 if __name__ == "__main__":
@@ -143,12 +153,18 @@ if __name__ == "__main__":
     from matplotlib import pyplot as plt
     lsfiles = glob('/mnt/extraspace/damonge/S8z_data/KiDS_data/shear_KV450_catalog/*')
     kv450 = KV450(lsfiles)
-    we1, we2, _ = kv450.get_shear_map(0)
-    w = kv450.get_mask(0)
-    hp.mollview(we1 / w, title='KV450 - 1st zbin - e1') # min=-0.1, max=0.3)
-    plt.savefig('kv450_e1.png')
-    hp.mollview(we2 / w, title='KV450 - 1st zbin - e2') # min=-0.1, max=0.1)
-    plt.savefig('kv450_e2.png')
+    for i in range(5):
+        we1, we2, w2s2 = kv450.get_shear_map(i)
+        w = kv450.get_mask(i)
+        # hp.write_map('kv450_we1_bin{}.fits'.format(i), we1)
+        # hp.write_map('kv450_we2_bin{}.fits'.format(i), we2)
+        hp.write_map('kv450_w2s2_bin{}.fits'.format(i), w2s2)
+        # hp.write_map('kv450_w_bin{}.fits'.format(i), w)
+        np.savez_compressed('kv450_sums_bin{}.npz'.format(i), w2s2=np.sum(w2s2))
+        # hp.mollview(we1 / w, title='KV450 - 1st zbin - e1', min=-0.5, max=0.5)
+        # plt.savefig('kv450_e1_bin{}.png'.format(i))
+        # hp.mollview(we2 / w, title='KV450 - 1st zbin - e2', min=-0.5, max=0.5)
+        # plt.savefig('kv450_e2_bin{}.png'.format(i))
 
 
 
