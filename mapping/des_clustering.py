@@ -60,21 +60,28 @@ for iz, zr in enumerate(zbins):
 # One final map with all galaxies in it
 masks.append([['all']])
 # Use iterator and masks to create maps
-nmaps, wmaps, _ = get_weighted_maps(itr, nside, 'RA', 'DEC',
-                                    name_weight='weight', masks=masks)
+nmaps, wmaps, w2maps = get_weighted_maps(itr, nside, 'RA', 'DEC',
+                                         name_weight='weight',
+                                         names_field=['weight'],
+                                         masks=masks)
+
 print(" Writing to file")
 # Write to file
 for iz in range(len(zbins)):
     print(iz)
-    hp.write_map(predir_out + "map_counts_bin%d_ns%d.fits" % (iz, nside),
+    hp.write_map(predir_out + "map_counts_bin%d_ns%d.fits.gz" % (iz, nside),
                  nmaps[iz], overwrite=True)
-    hp.write_map(predir_out + "map_counts_w_bin%d_ns%d.fits" % (iz, nside),
+    hp.write_map(predir_out + "map_counts_w_bin%d_ns%d.fits.gz" % (iz, nside),
                  wmaps[iz], overwrite=True)
-hp.write_map(predir_out + "map_counts_all_ns%d.fits" % nside,
+    hp.write_map(predir_out + "map_counts_w2_bin%d_ns%d.fits.gz" % (iz, nside),
+                 w2maps[iz][0], overwrite=True)
+hp.write_map(predir_out + "map_counts_all_ns%d.fits.gz" % nside,
              nmaps[-1], overwrite=True)
-hp.write_map(predir_out + "map_counts_w_all_ns%d.fits" % nside,
+hp.write_map(predir_out + "map_counts_w_all_ns%d.fits.gz" % nside,
              wmaps[-1], overwrite=True)
-    
+hp.write_map(predir_out + "map_counts_w2_all_ns%d.fits.gz" % nside,
+             w2maps[-1][0], overwrite=True)
+
 # Create map from random catalog
 print("Random count map")
 itr = get_fits_iterator(predir_in + fname_ran, ['RA', 'DEC'],
@@ -82,5 +89,5 @@ itr = get_fits_iterator(predir_in + fname_ran, ['RA', 'DEC'],
 nmap_r, _, _ = get_weighted_maps(itr, nside, "RA", "DEC")
 print(nmap_r.shape)
 print(" Writing to file")
-hp.write_map(predir_out + "map_counts_random_ns%d.fits" % nside,
+hp.write_map(predir_out + "map_counts_random_ns%d.fits.gz" % nside,
              nmap_r, overwrite=True)
