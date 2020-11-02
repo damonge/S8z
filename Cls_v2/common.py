@@ -31,6 +31,8 @@ def get_cl_tracers(data, wsp=False):
     for i, tr1 in enumerate(tr_names):
         for tr2 in tr_names[i:]:
             trreq = ''.join(s for s in (tr1 + '-' + tr2) if not s.isdigit())
+            if trreq not in data['cls']:
+                continue
             clreq =  data['cls'][trreq]
             if clreq == 'all':
                 pass
