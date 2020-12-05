@@ -32,7 +32,7 @@ class sfile():
         for tr1, tr2 in cl_tracers:
             self.add_ell_cl(tr1, tr2)
 
-    def add_covariance_NG(self):
+    def read_covariance_NG(self):
         dtype = self.s.get_data_types()[0]
         cl_tracers = self.s.get_tracer_combinations(data_type=dtype)
         ell, _ = self.s.get_ell_cl(dtype, *cl_tracers[0])
@@ -58,7 +58,11 @@ class sfile():
                 covmat[cl_ix1, :, cl_ix2, :] = covi
                 covmat[cl_ix2, :, cl_ix1, :] = covi.T
         print(self.s.indices(tracers=trs1))
-        self.s.add_covariance(covmat.reshape((ndim, ndim)))
+        return covmat.reshape((ndim, ndim))
+
+    def add_covariance_NG(self):
+        covmat = self.read_covariance_NG()
+        self.s.add_covariance(covmat)
 
     def add_covariance_G(self):
         # Get nbpw
@@ -71,6 +75,18 @@ class sfile():
         cl_tracers = self.s.get_tracer_combinations()
 
         covmat = -1 * np.ones((ndim, ndim))
+        # def dic(tr):
+        #     ibin = int(tr[-1])
+        #     if 'gc' in tr:
+        #         s = 0
+        #     elif 'wl' in tr:
+        #         s = 2
+        #         # ibin += 5
+        #     elif 'cv' in tr:
+        #         s = 0
+        #         ibin = 9
+        #     return ibin, s
+
         for i, trs1 in enumerate(cl_tracers):
             dof1 = co.get_dof_tracers(self.data, trs1)
             dtypes1 = self.get_datatypes_from_dof(dof1)
@@ -78,7 +94,18 @@ class sfile():
                 dof2 = co.get_dof_tracers(self.data, trs2)
                 dtypes2 = self.get_datatypes_from_dof(dof2)
                 print(trs1, trs2)
+                # tr1, tr2 = trs1
+                # tr3, tr4 = trs2
+
+                # b1, s1 = dic(tr1)
+                # b2, s2 = dic(tr2)
+                # b3, s3 = dic(tr3)
+                # b4, s4 = dic(tr4)
+
                 cov = Cov(self.datafile, *trs1, *trs2).cov.reshape((nbpw, dof1, nbpw, dof2))
+                # cname = f'cov_s{s1}{s2}{s3}{s4}_b{b1}{b2}{b3}{b4}.npz'
+                # cov = np.load('/mnt/extraspace/gravityls_3/S8z/Cls/all_together/new_fiducial_cov/' + cname)['arr_0'].reshape((nbpw, dof1, nbpw, dof2))
+                # cov = np.load(f'/mnt/extraspace/damonge/S8z_data/outputs/cls_metacal_covar_bins_new_nka_full_noise_{b1}{b2}_{b3}{b4}_ns4096.npz')['cov']
 
                 for i, dt1 in enumerate(dtypes1):
                     ix1 = self.s.indices(tracers=trs1, data_type=dt1)
@@ -92,6 +119,7 @@ class sfile():
                         covmat[np.ix_(ix1, ix2)] = covi
                         covmat[np.ix_(ix2, ix1)] = covi.T
 
+        # covmat += self.read_covariance_NG()
         self.s.add_covariance(covmat)
 
     def add_covariance(self):
@@ -127,21 +155,26 @@ class sfile():
     def add_ell_cl(self, tr1, tr2):
         ells_nobin = np.arange(3 * self.data['healpy']['nside'])
         cl = Cl(self.datafile, tr1, tr2)
+        if not self.use_nl:
+            w = cl.get_workspace()
+            ws_bpw= w.get_bandpower_windows()
 
         cl_types = self.get_datatypes_from_dof(cl.cl.shape[0])
 
         for i, cl_type in enumerate(cl_types):
-            if self.use_nl:
-                cli = cl.nl[i]
-                wins=None
-            else:
-                w = cl.get_workspace()
-                ws_bpw= w.get_bandpower_windows()
-
-                wins = sacc.BandpowerWindow(ells_nobin, ws_bpw[0, :, 0, :].T)
-                cli = cl.cl[i]
             if (cl_type == 'cl_be') and (tr1 == tr2):
                 continue
+            elif self.use_nl:
+                cli = cl.nl[i]
+                wins = None
+            else:
+                # b1 = int(tr1[-1])
+                # b2 = int(tr2[-1])
+                # predir = '/mnt/extraspace/damonge/S8z_data/outputs/'
+                # fname_win = predir + f'cls_metacal_win_bins_{b1}{b2}_ns4096.npz'
+                # ws_bpw = np.load(fname_win)['win']
+                wins = sacc.BandpowerWindow(ells_nobin, ws_bpw[i, :, i, :].T)
+                cli = cl.cl[i]
 
             self.s.add_ell_cl(cl_type, tr1, tr2, cl.ell, cli, window=wins)
 
