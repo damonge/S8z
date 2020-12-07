@@ -59,8 +59,8 @@ def launch_cls(data, queue, njobs, wsp=False, fiducial=False):
 
 def launch_cov(data, queue, njobs, wsp=False):
     #######
-    nc = 10
-    mem = 5
+    nc = 28 # 10
+    mem = 7.5 # 5
     #
     cov_tracers = co.get_cov_tracers(data, wsp)
     outdir = data['output']

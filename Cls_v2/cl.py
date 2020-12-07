@@ -180,6 +180,7 @@ class Cl():
             map_w2 = self._f1.get_w2_map()
             correction = map_w2[mask_good].sum() / map_w[mask_good].sum()
             N_ell *= correction
+
         nl = N_ell * np.ones(3 * nside)
         return np.array([nl])
 
@@ -311,6 +312,7 @@ class Cl_fid():
         if tracer['type'] == 'gc':
             # Import z, pz
             z, pz = np.loadtxt(tracer['dndz'], usecols=(1, 3), unpack=True)
+            # z, pz = np.loadtxt(tracer['dndz'], usecols=(0, 1), unpack=True)
             # Calculate z bias
             dz = 0
             z_dz = z - dz
@@ -328,6 +330,7 @@ class Cl_fid():
         elif tracer['type'] == 'wl':
             # Import z, pz
             z, pz = np.loadtxt(tracer['dndz'], usecols=(1, 3), unpack=True)
+            # z, pz = np.loadtxt(tracer['dndz'], usecols=(0, 1), unpack=True)
             # Calculate z bias
             dz = 0
             z_dz = z - dz
