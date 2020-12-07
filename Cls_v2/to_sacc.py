@@ -94,9 +94,9 @@ class sfile():
                 dof2 = co.get_dof_tracers(self.data, trs2)
                 dtypes2 = self.get_datatypes_from_dof(dof2)
                 print(trs1, trs2)
+
                 # tr1, tr2 = trs1
                 # tr3, tr4 = trs2
-
                 # b1, s1 = dic(tr1)
                 # b2, s2 = dic(tr2)
                 # b3, s3 = dic(tr3)
@@ -138,8 +138,8 @@ class sfile():
                               z=z, nz=nz)
         elif tracer['type'] == 'wl':
             quantity = 'galaxy_shear'
-            # z, nz = np.loadtxt(tracer['dndz'], usecols=(1, 3), unpack=True)
-            z, nz = np.loadtxt(tracer['dndz'], usecols=(0, 1), unpack=True)
+            z, nz = np.loadtxt(tracer['dndz'], usecols=(1, 3), unpack=True) # DES
+            # z, nz = np.loadtxt(tracer['dndz'], usecols=(0, 1), unpack=True) # KV
             self.s.add_tracer('NZ', tr, quantity=quantity, spin=tracer['spin'],
                               z=z, nz=nz)
         elif tracer['type'] == 'cv':
@@ -157,7 +157,7 @@ class sfile():
         cl = Cl(self.datafile, tr1, tr2)
         if not self.use_nl:
             w = cl.get_workspace()
-            ws_bpw= w.get_bandpower_windows()
+            ws_bpw = w.get_bandpower_windows()
 
         cl_types = self.get_datatypes_from_dof(cl.cl.shape[0])
 
@@ -175,11 +175,16 @@ class sfile():
                 # ws_bpw = np.load(fname_win)['win']
                 wins = sacc.BandpowerWindow(ells_nobin, ws_bpw[i, :, i, :].T)
                 cli = cl.cl[i]
+                # fname_cl = predir + f'cls_metacal_cls_bins_{b1}{b2}_ns4096.npz'
+                # cload = np.load(fname_cl)
+                # cli = cload['cls'][i] - cload['nls'][i]
+                # ls = cload['ls']
 
             self.s.add_ell_cl(cl_type, tr1, tr2, cl.ell, cli, window=wins)
+            # self.s.add_ell_cl(cl_type, tr1, tr2, ls, cli, window=wins)
 
     def get_datatypes_from_dof(self, dof):
-        if dof  == 1:
+        if dof == 1:
             cl_types = ['cl_00']
         elif dof == 2:
             cl_types = ['cl_0e', 'cl_0b']
