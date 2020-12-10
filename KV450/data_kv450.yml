@@ -7,6 +7,7 @@ tracers:
     mask: '/mnt/extraspace/gravityls_3/S8z/data/KV450/maps/kv450_w_bin0.fits'
     sums: '/mnt/extraspace/gravityls_3/S8z/data/KV450/maps/kv450_sums_bin0.npz'
     dndz: '/mnt/extraspace/damonge/S8z_data/KiDS_data/KV450_COSMIC_SHEAR_DATA_RELEASE/REDSHIFT_DISTRIBUTIONS/Nz_DIR/Nz_DIR_Mean/Nz_DIR_z0.1t0.3.asc'
+    dndz_cols: [0, 1]
     threshold: 0
   KVwl1:
     spin: 2
@@ -16,6 +17,7 @@ tracers:
     mask: '/mnt/extraspace/gravityls_3/S8z/data/KV450/maps/kv450_w_bin1.fits'
     sums: '/mnt/extraspace/gravityls_3/S8z/data/KV450/maps/kv450_sums_bin1.npz'
     dndz: '/mnt/extraspace/damonge/S8z_data/KiDS_data/KV450_COSMIC_SHEAR_DATA_RELEASE/REDSHIFT_DISTRIBUTIONS/Nz_DIR/Nz_DIR_Mean/Nz_DIR_z0.3t0.5.asc'
+    dndz_cols: [0, 1]
     threshold: 0
   KVwl2:
     spin: 2
@@ -25,6 +27,7 @@ tracers:
     mask: '/mnt/extraspace/gravityls_3/S8z/data/KV450/maps/kv450_w_bin2.fits'
     sums: '/mnt/extraspace/gravityls_3/S8z/data/KV450/maps/kv450_sums_bin2.npz'
     dndz: '/mnt/extraspace/damonge/S8z_data/KiDS_data/KV450_COSMIC_SHEAR_DATA_RELEASE/REDSHIFT_DISTRIBUTIONS/Nz_DIR/Nz_DIR_Mean/Nz_DIR_z0.5t0.7.asc'
+    dndz_cols: [0, 1]
     threshold: 0
   KVwl3:
     spin: 2
@@ -34,6 +37,7 @@ tracers:
     mask: '/mnt/extraspace/gravityls_3/S8z/data/KV450/maps/kv450_w_bin3.fits'
     sums: '/mnt/extraspace/gravityls_3/S8z/data/KV450/maps/kv450_sums_bin3.npz'
     dndz: '/mnt/extraspace/damonge/S8z_data/KiDS_data/KV450_COSMIC_SHEAR_DATA_RELEASE/REDSHIFT_DISTRIBUTIONS/Nz_DIR/Nz_DIR_Mean/Nz_DIR_z0.7t0.9.asc'
+    dndz_cols: [0, 1]
     threshold: 0
   KVwl4:
     spin: 2
@@ -43,6 +47,7 @@ tracers:
     mask: '/mnt/extraspace/gravityls_3/S8z/data/KV450/maps/kv450_w_bin4.fits'
     sums: '/mnt/extraspace/gravityls_3/S8z/data/KV450/maps/kv450_sums_bin4.npz'
     dndz: '/mnt/extraspace/damonge/S8z_data/KiDS_data/KV450_COSMIC_SHEAR_DATA_RELEASE/REDSHIFT_DISTRIBUTIONS/Nz_DIR/Nz_DIR_Mean/Nz_DIR_z0.9t1.2.asc'
+    dndz_cols: [0, 1]
     threshold: 0
 
 cls:

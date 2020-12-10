@@ -133,18 +133,17 @@ class sfile():
 
         if tracer['type'] == 'gc':
             quantity = 'galaxy_density'
-            z, nz = np.loadtxt(tracer['dndz'], usecols=(1, 3), unpack=True)
+            z, nz = np.loadtxt(tracer['dndz'], usecols=tracer['dndz_cols'], unpack=True)
             self.s.add_tracer('NZ', tr, quantity=quantity, spin=tracer['spin'],
                               z=z, nz=nz)
         elif tracer['type'] == 'wl':
             quantity = 'galaxy_shear'
-            z, nz = np.loadtxt(tracer['dndz'], usecols=(1, 3), unpack=True) # DES
-            # z, nz = np.loadtxt(tracer['dndz'], usecols=(0, 1), unpack=True) # KV
+            z, nz = np.loadtxt(tracer['dndz'], usecols=tracer['dndz_cols'], unpack=True)
             self.s.add_tracer('NZ', tr, quantity=quantity, spin=tracer['spin'],
                               z=z, nz=nz)
         elif tracer['type'] == 'cv':
             quantity = 'cmb_convergence'
-            ell, nl = np.loadtxt(tracer['nl'], usecols=(0, 1), unpack=True)
+            ell, nl = np.loadtxt(tracer['nl'], usecols=tracer['nl_cols'], unpack=True)
             beam = np.ones_like(ell)
             self.s.add_tracer('Map', tr, quantity=quantity, spin=tracer['spin'],
                               ell=ell, beam=beam, beam_extra={'nl': nl})

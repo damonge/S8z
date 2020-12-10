@@ -311,8 +311,7 @@ class Cl_fid():
         # Get Tracers
         if tracer['type'] == 'gc':
             # Import z, pz
-            z, pz = np.loadtxt(tracer['dndz'], usecols=(1, 3), unpack=True)
-            # z, pz = np.loadtxt(tracer['dndz'], usecols=(0, 1), unpack=True)
+            z, pz = np.loadtxt(tracer['dndz'], usecols=tracer['dndz_cols'], unpack=True)
             # Calculate z bias
             dz = 0
             z_dz = z - dz
@@ -329,8 +328,7 @@ class Cl_fid():
                                           dndz=(z_dz, pz), bias=bias)
         elif tracer['type'] == 'wl':
             # Import z, pz
-            z, pz = np.loadtxt(tracer['dndz'], usecols=(1, 3), unpack=True)
-            # z, pz = np.loadtxt(tracer['dndz'], usecols=(0, 1), unpack=True)
+            z, pz = np.loadtxt(tracer['dndz'], usecols=tracer['dndz_cols'], unpack=True)
             # Calculate z bias
             dz = 0
             z_dz = z - dz
