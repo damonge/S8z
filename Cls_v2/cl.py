@@ -198,6 +198,19 @@ class Cl():
 
         return np.array([nl, 0 * nl, 0 * nl, nl])
 
+    def _compute_coupled_noise_cv(self):
+        nside = self.data['healpy']['nside']
+        tracer = self.data['tracers'][self.tr1]
+        ell, nl = np.loadtxt(tracer['nl'], unpack=True, usecols=tracer['nl_cols'])
+
+        nell = np.zeros(3 * nside)
+        nell[:nl.size] += nl
+        nell[nl.size:] += nl[-1]
+
+        w = self.get_workspace()
+        nl_cp = w.couple_cell([nell])
+
+        return np.array(nl_cp)
 
     def compute_coupled_noise(self):
         tracer = self.data['tracers'][self.tr1]
@@ -213,7 +226,7 @@ class Cl():
         elif tracer['type'] == 'wl':
             return self._compute_coupled_noise_wl()
         elif tracer['type'] == 'cv':
-            return np.zeros((1, nell))
+            return self._compute_coupled_noise_cv()
         else:
             raise ValueError('Noise for tracer type {} not implemented'.format(tracer['type']))
 
