@@ -1,4 +1,5 @@
 #!/usr/bin/python
+from scipy.interpolate import interp1d
 import common as co
 import numpy as np
 import healpy as hp
@@ -201,16 +202,22 @@ class Cl():
     def _compute_coupled_noise_cv(self):
         nside = self.data['healpy']['nside']
         tracer = self.data['tracers'][self.tr1]
-        ell, nl = np.loadtxt(tracer['nl'], unpack=True, usecols=tracer['nl_cols'])
+        ell = np.arange(3 * nside)
+        ell_nl, nl = np.loadtxt(tracer['nl'], unpack=True, usecols=tracer['nl_cols'])
 
-        nell = np.zeros(3 * nside)
-        nell[:nl.size] += nl
-        nell[nl.size:] += nl[-1]
+        # nl = nl[ell_nl <= 2000]
+        # ell_nl = ell_nl[ell_nl <= 2000]
+        nl = interp1d(ell_nl, nl, bounds_error=False,
+                      fill_value=(nl[0], nl[-1]))(ell)
+        nl = np.array([nl])
 
-        w = self.get_workspace()
-        nl_cp = w.couple_cell([nell])
+        # Note: IMPORTANT!!!
+        # Don't couple the nl (i.e. don't use w.couple_cell,  because it is
+        # mode coupling dominated by the large scales
+        m1, m2 = self.get_masks()
+        nl_cp = nl * np.mean(m1 * m2)
 
-        return np.array(nl_cp)
+        return nl_cp
 
     def compute_coupled_noise(self):
         tracer = self.data['tracers'][self.tr1]
@@ -244,7 +251,15 @@ class Cl():
             w = self.get_workspace()
             cl = w.decouple_cell(nmt.compute_coupled_cell(f1.f, f2.f))
             nl_cp = self.compute_coupled_noise()
-            nl = w.decouple_cell(nl_cp)
+            if (tr1 == tr2) and (self.data['tracers'][tr1]['type'] == 'cv'):
+                tracer = self.data['tracers'][tr1]
+                ell_nl, nl = np.loadtxt(tracer['nl'], unpack=True,
+                                        usecols=tracer['nl_cols'])
+                nl = interp1d(ell_nl, nl, bounds_error=False,
+                              fill_value=(nl[0], nl[-1]))(ell)
+                nl = np.array([nl])
+            else:
+                nl = w.decouple_cell(nl_cp)
             np.savez(fname, ell=ell, cl=cl-nl, nl=nl, nl_cp=nl_cp)
 
         cl_file = np.load(fname)
