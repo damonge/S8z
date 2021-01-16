@@ -65,10 +65,17 @@ class Cov():
         cw = nmt.NmtCovarianceWorkspace()
         if not os.path.isfile(fname):
             n_iter = self.data['healpy']['n_iter_cmcm']
+            if 'toeplizt' in self.data:
+                l_toeplitz = self.data['toeplizt']['l_toeplitz']
+                l_exact = self.data['toeplizt']['l_exact']
+                dl_band = self.data['toeplizt']['dl_band']
+            else:
+                l_toeplitz = l_exact = dl_band = -1
             fA1, fB1 = self.clA1B1.get_fields()
             fA2, fB2 = self.clA2B2.get_fields()
             cw.compute_coupling_coefficients(fA1.f, fA2.f, fB1.f, fB2.f,
-                                             n_iter=n_iter)
+                                             n_iter=n_iter,
+                                             l_toeplitz=l_toeplitz, l_exact=l_exact, dl_band=dl_band)
             cw.write_to(fname)
         else:
             cw.read_from(fname)

@@ -159,9 +159,16 @@ class Cl():
         w = nmt.NmtWorkspace()
         if not os.path.isfile(fname):
             n_iter = self.data['healpy']['n_iter_mcm']
+            if 'toeplizt' in self.data:
+                l_toeplitz = self.data['toeplizt']['l_toeplitz']
+                l_exact = self.data['toeplizt']['l_exact']
+                dl_band = self.data['toeplizt']['dl_band']
+            else:
+                l_toeplitz = l_exact = dl_band = -1
             f1, f2 = self.get_fields()
             w.compute_coupling_matrix(f1.f, f2.f, self.b,
-                                      n_iter=n_iter)
+                                      n_iter=n_iter,
+                                      l_toeplitz=l_toeplitz, l_exact=l_exact, dl_band=dl_band)
             w.write_to(fname)
         else:
             w.read_from(fname)
