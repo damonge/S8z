@@ -87,17 +87,15 @@ class KV450():
 
     def _remove_additive_bias(self, data):
         sel_gals = data['SG_FLAG'] == 1
-        print(np.mean(data[sel_gals]['bias_corrected_e1']))
-        print(np.mean(data[sel_gals]['bias_corrected_e2']))
-        data[sel_gals]['bias_corrected_e1'] -= np.mean(data[sel_gals]['bias_corrected_e1'])
-        data[sel_gals]['bias_corrected_e2'] -= np.mean(data[sel_gals]['bias_corrected_e2'])
+        data['bias_corrected_e1'][sel_gals] -= np.mean(data['bias_corrected_e1'][sel_gals])
+        data['bias_corrected_e2'][sel_gals] -= np.mean(data['bias_corrected_e2'][sel_gals])
 
     def _remove_multiplicative_bias(self, data, zbin):
         # Values from Table 2 of 1812.06076 (KV450 cosmo paper)
         m = (-0.017, -0.008, -0.015, 0.010, 0.006)
         sel_gals = data['SG_FLAG'] == 1
-        data[sel_gals]['bias_corrected_e1'] /= 1 + m[zbin]
-        data[sel_gals]['bias_corrected_e2'] /= 1 + m[zbin]
+        data['bias_corrected_e1'][sel_gals] /= 1 + m[zbin]
+        data['bias_corrected_e2'][sel_gals] /= 1 + m[zbin]
 
 
     def _add_ipix_to_data(self, data):
