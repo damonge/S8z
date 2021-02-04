@@ -87,8 +87,11 @@ class KV450():
 
     def _remove_additive_bias(self, data):
         sel_gals = data['SG_FLAG'] == 1
-        data['bias_corrected_e1'][sel_gals] -= np.mean(data['bias_corrected_e1'][sel_gals])
-        data['bias_corrected_e2'][sel_gals] -= np.mean(data['bias_corrected_e2'][sel_gals])
+        weigths = data['weight'][sel_gals]
+        data['bias_corrected_e1'][sel_gals] -= np.average(data['bias_corrected_e1'][sel_gals],
+                                                          weights=weigths)
+        data['bias_corrected_e2'][sel_gals] -= np.average(data['bias_corrected_e2'][sel_gals],
+                                                          weights=weigths)
 
     def _remove_multiplicative_bias(self, data, zbin):
         # Values from Table 2 of 1812.06076 (KV450 cosmo paper)
@@ -150,15 +153,16 @@ if __name__ == "__main__":
     from glob import glob
     from matplotlib import pyplot as plt
     lsfiles = glob('/mnt/extraspace/damonge/S8z_data/KiDS_data/shear_KV450_catalog/*')
-    kv450 = KV450(lsfiles)
+    kv450 = KV450(lsfiles, 1024)
+    outdir = '/mnt/extraspace/gravityls_3/S8z/data/KV450/maps_1024/'
     for i in range(5):
         we1, we2, w2s2 = kv450.get_shear_map(i)
         w = kv450.get_mask(i)
-        hp.write_map('kv450_we1_bin{}.fits'.format(i), we1)
-        hp.write_map('kv450_we2_bin{}.fits'.format(i), we2)
-        hp.write_map('kv450_w2s2_bin{}.fits'.format(i), w2s2)
-        hp.write_map('kv450_w_bin{}.fits'.format(i), w)
-        np.savez_compressed('kv450_sums_bin{}.npz'.format(i), w2s2=np.sum(w2s2))
+        hp.write_map(outdir + 'kv450_we1_bin{}.fits'.format(i), we1)
+        hp.write_map(outdir + 'kv450_we2_bin{}.fits'.format(i), we2)
+        hp.write_map(outdir + 'kv450_w2s2_bin{}.fits'.format(i), w2s2)
+        hp.write_map(outdir + 'kv450_w_bin{}.fits'.format(i), w)
+        np.savez_compressed(outdir + 'kv450_sums_bin{}.npz'.format(i), w2s2=np.sum(w2s2))
         # hp.mollview(we1 / w, title='KV450 - 1st zbin - e1', min=-0.5, max=0.5)
         # plt.savefig('kv450_e1_bin{}.png'.format(i))
         # hp.mollview(we2 / w, title='KV450 - 1st zbin - e2', min=-0.5, max=0.5)
