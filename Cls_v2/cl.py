@@ -153,8 +153,7 @@ class Cl():
         mask1 = os.path.splitext(mask1)[0]
         mask2 = os.path.splitext(mask2)[0]
         if self.read_symm:
-            mask1 = mask2
-            mask2 = mask1
+            mask1, mask2 = mask2, mask1
         fname = os.path.join(self.outdir, 'w__{}__{}.fits'.format(mask1, mask2))
         w = nmt.NmtWorkspace()
         if not os.path.isfile(fname):
