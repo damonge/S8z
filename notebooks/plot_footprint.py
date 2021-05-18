@@ -70,9 +70,10 @@ if __name__ == '__main__':
     mask[mask == 0] = hp.UNSEEN
 
     hp.mollview(mask, cbar=False, title='', cmap='tab10', badcolor="lightgray")
+    hp.graticule()
 
     plt.text(0., 0.50, 'eBOSS', fontsize=15, color='black', horizontalalignment='center')
-    plt.text(0.80, 0.15, 'DLS', fontsize=15, color='black', horizontalalignment='left')
+    plt.text(0.80, 0.15, 'DELS', fontsize=15, color='black', horizontalalignment='left')
     plt.text(0.35, -0.47, 'KiDS', fontsize=15, color='black', horizontalalignment='left')
     plt.text(-0.1, -0.85, 'DES', fontsize=15, color='black', horizontalalignment='center')
 
@@ -95,9 +96,10 @@ if __name__ == '__main__':
     mask[mask == 0] = hp.UNSEEN
 
     hp.mollview(mask, cbar=False, title='', cmap='tab10', badcolor="lightgray")
+    hp.graticule()
 
     plt.text(0., 0.50, 'eBOSS', fontsize=15, color='black', horizontalalignment='center')
-    plt.text(0.80, 0.15, 'DLS', fontsize=15, color='black', horizontalalignment='left')
+    plt.text(0.80, 0.15, 'DELS', fontsize=15, color='black', horizontalalignment='left')
     plt.text(0.35, -0.47, 'KiDS', fontsize=15, color='black', horizontalalignment='left')
     plt.text(-0.1, -0.85, 'DES', fontsize=15, color='black', horizontalalignment='center')
 
