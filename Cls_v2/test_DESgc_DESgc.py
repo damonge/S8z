@@ -32,7 +32,7 @@ dndz_cols = [1, 3]
 bpw_edges = np.array([0, 30, 60, 90, 120, 150, 180, 210, 240, 272, 309, 351, 398, 452, 513, 582, 661, 750, 852, 967, 1098, 1247, 1416, 1608, 1826, 2073, 2354, 2673, 3035, 3446, 3914, 4444, 5047, 5731, 6508, 7390, 8392, 9529, 10821, 12288])
 nside = 4096
 
-output = '/mnt/extraspace/gravityls_3/prueba_DESgc/'
+output = '/mnt/extraspace/gravityls_3/prueba_DESgc_iter0/'
 os.makedirs(output, exist_ok=True)
 ##### END Config #####
 
@@ -67,7 +67,7 @@ path2wsp= output + 'w.fits'
 if os.path.isfile(path2wsp):
     wsp.read_from(path2wsp)
 else:
-    wsp.compute_coupling_matrix(f, f, b)
+    wsp.compute_coupling_matrix(f, f, b, n_iter=0)
     wsp.write_to(path2wsp)
 #########
 
@@ -97,7 +97,7 @@ path2cwsp = output + 'cw.fits'
 if os.path.isfile(path2cwsp):
     cwsp.read_from(path2cwsp)
 else:
-    cwsp.compute_coupling_coefficients(f, f)
+    cwsp.compute_coupling_coefficients(f, f, n_iter=0)
     cwsp.write_to(path2cwsp)
 
 # Clfid #

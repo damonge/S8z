@@ -154,15 +154,16 @@ if __name__ == "__main__":
     from matplotlib import pyplot as plt
     lsfiles = glob('/mnt/extraspace/damonge/S8z_data/KiDS_data/shear_KV450_catalog/*')
     kv450 = KV450(lsfiles, 1024)
-    outdir = '/mnt/extraspace/gravityls_3/S8z/data/KV450/maps_1024/'
+    outdir = '/mnt/extraspace/gravityls_3/S8z/data/KV450/lite/'
     for i in range(5):
-        we1, we2, w2s2 = kv450.get_shear_map(i)
-        w = kv450.get_mask(i)
-        hp.write_map(outdir + 'kv450_we1_bin{}.fits'.format(i), we1)
-        hp.write_map(outdir + 'kv450_we2_bin{}.fits'.format(i), we2)
-        hp.write_map(outdir + 'kv450_w2s2_bin{}.fits'.format(i), w2s2)
-        hp.write_map(outdir + 'kv450_w_bin{}.fits'.format(i), w)
-        np.savez_compressed(outdir + 'kv450_sums_bin{}.npz'.format(i), w2s2=np.sum(w2s2))
+        kv450.tomo_data[i].write(outdir + f'KV450_catalog_lite_{i}.fits')
+        # we1, we2, w2s2 = kv450.get_shear_map(i)
+        # w = kv450.get_mask(i)
+        # hp.write_map(outdir + 'kv450_we1_bin{}.fits'.format(i), we1)
+        # hp.write_map(outdir + 'kv450_we2_bin{}.fits'.format(i), we2)
+        # hp.write_map(outdir + 'kv450_w2s2_bin{}.fits'.format(i), w2s2)
+        # hp.write_map(outdir + 'kv450_w_bin{}.fits'.format(i), w)
+        # np.savez_compressed(outdir + 'kv450_sums_bin{}.npz'.format(i), w2s2=np.sum(w2s2))
         # hp.mollview(we1 / w, title='KV450 - 1st zbin - e1', min=-0.5, max=0.5)
         # plt.savefig('kv450_e1_bin{}.png'.format(i))
         # hp.mollview(we2 / w, title='KV450 - 1st zbin - e2', min=-0.5, max=0.5)

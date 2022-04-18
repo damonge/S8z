@@ -44,7 +44,9 @@ def launch_cls(data, queue, njobs, wsp=False, fiducial=False):
         if os.path.isfile(fname):
             continue
 
-        mem = get_mem(data, (tr1, tr2), 'cls') / nc
+        # mem = get_mem(data, (tr1, tr2), 'cls') / nc
+        queue = 'cmb'
+        mem = 8 # for cmb queue
         if not fiducial:
             pyexec = "addqueue -c {} -n 1x{} -s -q {} -m {} /usr/bin/python3".format(comment, nc, queue, mem)
             pyrun = 'cl.py {} {} {}'.format(args.INPUT, tr1, tr2)
@@ -59,8 +61,7 @@ def launch_cls(data, queue, njobs, wsp=False, fiducial=False):
 
 def launch_cov(data, queue, njobs, wsp=False):
     #######
-    nc = 28 # 10
-    mem = 7.5 # 5
+    nc = 10 # 24 # 28 # 10
     #
     cov_tracers = co.get_cov_tracers(data, wsp)
     outdir = data['output']
@@ -72,7 +73,9 @@ def launch_cov(data, queue, njobs, wsp=False):
         fname = os.path.join(outdir, 'cov', comment + '.npz')
         if os.path.isfile(fname):
             continue
-        mem = get_mem(data, trs, 'cov') / nc
+        # mem = get_mem(data, trs, 'cov') / nc
+        queue = 'cmb'
+        mem = 8 # for cmb queue
         pyexec = "addqueue -c {} -n 1x{} -s -q {} -m {} /usr/bin/python3".format(comment, nc, queue, mem)
         pyrun = 'cov.py {} {} {} {} {}'.format(args.INPUT, *trs)
         print(pyexec + " " + pyrun)

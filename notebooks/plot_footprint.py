@@ -6,6 +6,7 @@ import xcell
 import healpy as hp
 import pyccl as ccl
 from matplotlib import pyplot as plt
+plt.rcParams['text.usetex'] = True
 
 
 def scale_bin_map(mask, c):

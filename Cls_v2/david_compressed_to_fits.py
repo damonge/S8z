@@ -3,32 +3,34 @@ import numpy as np
 import healpy as hp
 import os
 
+nside = 512
+
 def to_fits(ibin):
     root = '/mnt/extraspace/damonge/S8z_data/outputs/'
     outdir = '/mnt/extraspace/gravityls_3/S8z/data/derived_products/des_shear/'
-    goodpix = np.load(root + 'maps_metacal_bin{}_ns1024_goodpix.npz'.format(ibin))['pix']
-    we = np.load(root + 'maps_metacal_bin{}_ns1024_we.npz'.format(ibin))
-    w2s2 = np.load(root + 'maps_metacal_bin{}_ns1024_w2s2.npz'.format(ibin))['w2s2']
-    w = np.load(root + 'maps_metacal_bin{}_ns1024_w.npz'.format(ibin))['w']
-    # wpsfe = np.load(root + 'maps_metacal_bin{}_ns1024_wpsfe.npz'.format(ibin))
+    goodpix = np.load(root + f'maps_metacal_bin{ibin}_ns{nside}_goodpix.npz')['pix']
+    we = np.load(root + f'maps_metacal_bin{ibin}_ns{nside}_we.npz')
+    w2s2 = np.load(root + f'maps_metacal_bin{ibin}_ns{nside}_w2s2.npz')['w2s2']
+    w = np.load(root + f'maps_metacal_bin{ibin}_ns{nside}_w.npz')['w']
+    # wpsfe = np.load(root + 'maps_metacal_bin{}_ns{nside}_wpsfe.npz'.format(ibin))
 
-    zmap = np.zeros(hp.nside2npix(1024))
-    fname = outdir + 'map_metacal_bin{}_w_ns1024.fits'.format(ibin)
+    zmap = np.zeros(hp.nside2npix(nside))
+    fname = outdir + f'map_metacal_bin{ibin}_w_ns{nside}.fits'
     if not os.path.isfile(fname):
         zmap[goodpix] = w
         hp.write_map(fname, zmap)
 
-    fname = outdir + 'map_metacal_bin{}_we1_ns1024.fits'.format(ibin)
+    fname = outdir + f'map_metacal_bin{ibin}_we1_ns{nside}.fits'
     if not os.path.isfile(fname):
         zmap[goodpix] = we['e1']
         hp.write_map(fname, zmap)
 
-    fname = outdir + 'map_metacal_bin{}_we2_ns1024.fits'.format(ibin)
+    fname = outdir + f'map_metacal_bin{ibin}_we2_ns{nside}.fits'
     if not os.path.isfile(fname):
         zmap[goodpix] = we['e2']
         hp.write_map(fname, zmap)
 
-    fname = outdir + 'sums_metacal_bin{}.npz'.format(ibin)
+    fname = outdir + f'sums_metacal_bin{ibin}.npz'
     if not os.path.isfile(fname):
         np.savez_compressed(fname, w2s2=np.sum(w2s2))
 
